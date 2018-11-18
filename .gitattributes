@@ -1,0 +1,14 @@
+# Normalize line endings
+* text=auto
+
+.gitattributes export-ignore
+.gitignore     export-ignore
+
+Makefile text eol=lf
+*.code-workspace text eol=lf
+
+# All image files are binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
