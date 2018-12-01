@@ -38,29 +38,25 @@ Then you create an empty class implementing this interface, decorated with the `
     {
     }
 
-This will of course not compile in its current form. However, the MocklisClass attribute enables a refactoring action in Visual Studio.
+This will of course not compile in its current form. However, the presence of the MocklisClass attribute enables a refactoring action in Visual Studio.
 
 .. image:: UpdateMocklisClass.png
 
-*At the moment, this is all the MocklisClass attribute does. It's possible that it may add other instructions to the code generator
-in the future but for now this is it.*
+*At the moment, this is all the MocklisClass attribute does. Properties on the attribute could be used in a future release to
+fine-tune how the code generator works.*
 
-When this refactoring is used, the contents of the class is replaced with something like the following:
+When this refactoring is used, the contents of the class is replaced as follows:
 
 .. sourcecode:: csharp
 
     [MocklisClass]
     public class MockConnection : IConnection
     {
-        public MockConnection(Action<(
-            IPropertyStepCaller<string> ConnectionId,
-            IEventStepCaller<EventHandler<MessageEventArgs>> Receive,
-            IMethodStepCaller<Message, Task> Send)> mockSetup = null)
+        public MockConnection()
         {
             ConnectionId = new PropertyMock<string>(this, "MockConnection", "IConnection", "ConnectionId", "ConnectionId");
             Receive = new EventMock<EventHandler<MessageEventArgs>>(this, "MockConnection", "IConnection", "Receive", "Receive");
             Send = new FuncMethodMock<Message, Task>(this, "MockConnection", "IConnection", "Send", "Send");
-            mockSetup?.Invoke((ConnectionId, Receive, Send));
         }
 
         public PropertyMock<string> ConnectionId { get; }
@@ -109,10 +105,8 @@ The next step up (pun very much not intended) from this is the 'Dummy' step: don
     public void CanCreatePingService()
     {
         // Arrange
-        var mockConnection = new MockConnection(m =>
-        {
-            m.Receive.Dummy();
-        });
+        var mockConnection = new MockConnection();
+        mockConnection.Receive.Dummy();
         
         // Act
         var pingService = new PingService(mockConnection);
@@ -124,27 +118,24 @@ The next step up (pun very much not intended) from this is the 'Dummy' step: don
 The next step up from 'Dummy', if we actually need to remember what event handlers were actually added to the event is the `Stored` step, which
 will keep track of attached event handlers, and there are a number of other steps with other types of attachable behaviours.
 
+This chapter is just an introduction; see the reference for a complete list of steps and other constructs used to tune how `Mocklis Classes` work.
+
 Intellisense friendly
 =====================
 
-Intellisense is a great feature of modern code editors, and Mocklis is written to make the most of it. There are in particular two places where
-Mocklis tries to help you out. Firstly the constructor gives you an `Action` with a value tuple giving access to all Mock properties on the
-class.
+Intellisense is a great feature of modern code editors, and Mocklis is written to make the most of it. Your Mocklis Class exposes properties
+for members of implemented interfaces. These properties have extension methods for all of the different steps that they support, which means
+that Visual Studio will list the available steps through intellisense.
 
-.. image:: Intellisense1.png
+.. image:: Intellisense.png
 
-Then when one of these is selected, you get suggestions for steps that can be applied.
-
-.. image:: Intellisense2.png
-
-Since Mocklis uses extension methods to apply steps to Mock Properties, this list would also include any bespoke steps that have been added, 
-and the intellisense support would work equally well if just selecting a Mock Property on the Mocklis class instance directly and added a
-dot for method invocation.
+Thanks to the extension method approach this list would also include any bespoke steps that have been added, whether defined in your own
+solution or in third party packages.
 
 Used as dependencies
 ====================
 
-Since Mocklis classes implement interfaces implicitly, we don't risk a name clash with the Mock Properties (and indeed if possible, the Mock
+Since Mocklis classes implement interfaces explicitly, we don't risk a name clash with the Mock Properties (and indeed if possible, the Mock
 Properties will be given the same name as the interface member it's paired with), and we can use the Mock instance directly wherever the
 interface is expected.
 
@@ -153,7 +144,7 @@ one interface. Common cases include where a class would implement a service inte
 and `INotifyPropertyChanged`. If you need to mock out an enumerable, your Mocklis class can mock both `IEnumerable<T>` and `IEnumerator<T>`
 at the same time.
 
-However, this also means that Mocklis classes can not derive from an existing class and create mocks for virtual members.
+However, this also means that Mocklis classes can not derive from an existing class and create mocks for virtual members of such a class.
 
 Verify interactions
 ===================
@@ -175,40 +166,34 @@ Take for instance this, somewhat contrived, test:
     public void TestIndex()
     {
         // Arrange
-        VerificationGroup vg = new VerificationGroup("Checks for indexer");
-        IIndex mockIndex = new MockIndex(m =>
-        {
-            m.Item
-                .ExpectedUsage(vg, null, 1, 3)
-                .StoredAsDictionary()
-                .CurrentValuesCheck(vg, null, new[]
-                {
-                    new KeyValuePair<int, string>(1, "one"),
-                    new KeyValuePair<int, string>(2, "two"),
-                    new KeyValuePair<int, string>(3, "thre")
-                });
-        });
+        var vg = new VerificationGroup("Checks for indexer");
+        var mockIndex = new MockIndex();
+        mockIndex.Item
+            .ExpectedUsage(vg, null, 1, 3)
+            .StoredAsDictionary()
+            .CurrentValuesCheck(vg, null, new[]
+            {
+                new KeyValuePair<int, string>(1, "one"),
+                new KeyValuePair<int, string>(2, "two"),
+                new KeyValuePair<int, string>(3, "thre")
+            });
+
+        var index = (IIndex) mockIndex;
 
         // Act
-        mockIndex[1] = "one";
-        mockIndex[2] = "two";
-        mockIndex[3] = "three";
+        index[1] = "one";
+        index[2] = "two";
+        index[3] = "three";
 
         // Assert
-        var result = vg.Verify();
-        Console.WriteLine(result.ToString());
-
-        Assert.IsTrue(result.Success);
+        vg.Assert(includeSuccessfulVerifications: true);
     }
 
 This test will fail with the following output: 
 
 .. sourcecode:: none
 
-    Expected: True
-    But was:  False
-
-    at MyProject.Tests.TestIndex()
+    Mocklis.Verification.VerificationFailedException : Verification Failed.
 
     FAILED: Verification Group 'Checks for indexer':
     FAILED:   Usage Count: Expected 1 get(s); received 0 get(s).
@@ -218,7 +203,10 @@ This test will fail with the following output:
     Passed:     Key '2'; Expected 'two'; Current Value is 'two'
     FAILED:     Key '3'; Expected 'thre'; Current Value is 'three'
 
-Note that all verifications are checked - it will not stop at the first failure.
+Note that all verifications are checked - it will not stop at the first failure. By default the assertion
+will not show the Passed verifications (although the exception itself has a VerificationResult property,
+so you can always get to it). If you want to include all verifications in the exception message you need
+to pass true for the `includeSuccessfulVerifications` parameter, as done in the sample above.
 
 Without reflection
 ==================
@@ -243,6 +231,5 @@ Cons
 
 * The code in question has to be written, although the code generator bundled with Mocklis makes this much easier.
 
-* We only look at mocking interfaces, not virtual base classes. This could potentially be changed down the line, but it makes code generation a little bit harder (need to make sure there are no name clashes) and it is not felt to be that common a thing to do.
+* We only look at mocking interfaces, not virtual base classes. This could potentially be changed down the line, but it would make code generation a little bit harder (need to make sure there are no name clashes) and it is not felt to be that common a thing to do.
 
-All in all we hope that you find Mocklis a useful addition to your arsenal of testing tools.

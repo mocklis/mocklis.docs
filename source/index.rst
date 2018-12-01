@@ -1,11 +1,11 @@
-===================================
-Welcome to Mocklis's documentation!
-===================================
+=====================
+Mocklis documentation
+=====================
+
+.. image:: mocklis.png
 
 
-
-
-Mocklis source code generator for .net (currently C# only) which creates test doubles from interfaces, along with an api for providing these test doubles with behaviour.
+Mocklis is a source code generator for .net (currently C# only) which creates test doubles from interfaces, along with an api for providing these test doubles with behaviour.
 
 
 .. toctree::
@@ -16,7 +16,9 @@ Mocklis source code generator for .net (currently C# only) which creates test do
    introduction/index.rst
    installation/index.rst
    getting-started/index.rst
-
+   reference/index.rst
+   extensions/index.rst
+   faq/index.rst
 
 
 Indices and tables

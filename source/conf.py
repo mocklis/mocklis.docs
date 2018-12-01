@@ -24,9 +24,9 @@ copyright = u'Copyright © 2018 Esbjörn Redmo and contributors. All rights rese
 author = u'Esbjörn Redmo'
 
 # The short X.Y version
-version = '0.1.0'
+version = '0.1.1'
 # The full version, including alpha/beta/rc tags
-release = '0.1.0-alpha'
+release = '0.1.1-alpha'
 
 
 # -- General configuration ---------------------------------------------------
