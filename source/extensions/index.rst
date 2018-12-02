@@ -5,7 +5,7 @@ Extending Mocklis
 How Mocklis works
 =================
 
-An interface in C# can contain four different types of members, events, methods, properties and indexers, however
+An interface in C# can contain four different types of members: events, methods, properties and indexers. However
 each of them is just syntactic suger over one or two method calls. In Mocklis we represent each of them with a
 generic interface which encapsulates these method calls.
 
@@ -78,7 +78,7 @@ See for instance the following interface / mock implementation pair:
         }
     }
 
-When MothlyPayment is called, it wraps the parameters sent to it into a single argument to the `Call` method on the `FuncMethodMock` property.
+When MonthlyPayment is called, it wraps the parameters sent to it into a single argument to the `Call` method on the `FuncMethodMock` property.
 
 With out parameters we need to work a little harder. The mock property now has only one in parameter but two out parameters (again wrapped in
 a value tuple). It's up to the generated code to juggle the pieces to the right places. Ref parameters are *both* sent as parameters to the
@@ -129,7 +129,7 @@ The exception for the second call would look something like:
     *Mocklis.Core.MockMissingException: No mock implementation found for getting value of Property 'ISample.TotalLinesOfCode'. Add one using 'TotalLinesOfCode' on the 'MockSample' class.*
 
 If we take another look at this last code sample, we notice that we do not call `SetNextStep` anywhere. In fact you will very rarely (if ever) see
-these calls in your test code, and the reason is that they're hidden in extension methods. If we look at the `ReturnOnce` extension method
+these calls in your test code. The reason is that they're hidden in extension methods looking something along these lines:
 
 .. sourcecode:: csharp
 
@@ -147,7 +147,7 @@ else. For the `Stored` property steps, an IStoredProperty interface is returned 
 validation checks.
 
 As a last note, since method calls can have zero parameters and a void return type, we end up with effectively four different types of methods.
-To keep the mock class a little more readable, there are therefore four different method mock properties, that all implement the `IMethodStepCaller`
+To keep the mock class a little more readable, there are therefore four different method mock types, that all implement the `IMethodStepCaller`
 interface. There are also cases where the steps themselves come in different flavours depending on whether there are parameters and/or return types.
 The trick used by Mocklis is to represent a missing type with ValueTuple, but that means that there might be more than one valid step to use.
 
@@ -235,7 +235,7 @@ Now you can use your new step:
 
 With the obvious (well - depending on what time it is) result:
 
-    System.Exception: It's late - start considering calling it a day.
+    *System.Exception: It's late - start considering calling it a day.*
 
 Phase 3: Generalise
 -------------------
@@ -248,7 +248,7 @@ steps with the same name as your existing ones, but prefixed with `Instance`. Fo
 to the construct you have that uses the instance. Look at the existing `Lamdba` steps for the quintessential implementation, however
 the `Record` and `If` steps also have instance versions.
 
-Finally, if you work with steps for methods, you might need to consider having different versions depending on whether your
+If you work with steps for methods, you might need to consider having different versions depending on whether your
 methods take parameters or not, and whether they return things or not. For the `lamdba` steps there are two `FuncMethodStep` classes,
 and two `ActionMethodStep` classes.
 
@@ -270,12 +270,12 @@ and two `ActionMethodStep` classes.
     {
     }
 
-Note how the ones that don't funnel data constrict either TParam and/or TResult to be of type ValueTuple (read: void or unit depending on your school of thought).
+Note how the ones that don't funnel data constrict either TParam and/or TResult to be of type ValueTuple (read: *void* or *unit* depending on how you were brought up).
 While more than one of these might be eligible for use in a given scenario, the design goal is that there should always be one that doesn't require the user
 to pass manually created ValueTuple instances.
 
 Writing new verifications
-======================++=
+=========================
 
 Verification is one of the least 'polished' parts of Mocklis (and that's saying something...)
 
@@ -346,14 +346,9 @@ override Call to set a flag that it has been called, and implement IVerifiable t
 
     public IEnumerable<VerificationResult> Verify()
     {
-        if (_hasBeenCalled)
-        {
-            yield return new VerificationResult("Method should be called and it has.", true);
-        }
-        else
-        {
-            yield return new VerificationResult("Method should be called but it hasn't.", false);
-        }
+        var text = "Method should be called, " +
+            (_hasBeenCalled ? "and it has." : "but it hasn't.");
+        yield return new VerificationResult(text, _hasBeenCalled);
     }
 
 Then we add the step to the verification group in its extension method:

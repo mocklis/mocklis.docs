@@ -84,10 +84,10 @@ Dummy steps
 
 The `Dummy` steps will do as little as possible without throwing an exception. For a property or indexer, the
 step will do nothing for a setter, and return a default value for a getter. For an event, adding and removing
-an event handler will both do nothing, and for a method, it will not do anything with parameters, ind return
-default values for any return values, including out and ref parameters.
+an event handler will both do nothing. For a method, it will not do anything with parameters, and return
+default values for anything that needs returning, including out and ref parameters.
 
-Note also that `Dummy` steps are terminating - you cannot add anything to follow them.
+Note also that `Dummy` steps are `final` - you cannot add anything to follow them.
 
 Gate steps
 ----------
@@ -96,7 +96,7 @@ There is somthing slightly unfortunate with this alphabetic ordering, in that th
 steps (`Gate`, `Join`, and to some extent `If`) appear before the more mundane ones (`Return` and `Stored` spring
 to mind).
 
-The idea behind a `Gate` is that it will complete a task, when the step is called. The task can then be used to
+The idea behind a `Gate` is that it will complete a Task (as in the TPL), when the step is called. The Task can then be used to
 drive other things happening in the step, effectively forcing a strict ordering.
 
 *Syntax very experimental - only exists for `Method` mocks currently - might be killed off altogether...*
@@ -147,7 +147,7 @@ Let's say that we want to connect two properties to the same stored step.
     Console.WriteLine(dishes.Revenge);
 
 Note that any step would do for a `Join`, as long as we can get hold of it. The following would work equally well, taking
-the `stored` step and using that a a join point.:
+the `stored` step and using that as a join point.:
 
 .. sourcecode:: csharp
 
@@ -164,7 +164,7 @@ run, and the result (in the case of the Func) will be returned.
 In the current version of the code they only exist for methods, and for property and indexer getters, where in the
 latter case the indexer key is passed to the func as a parameter.
 
-The lambda steps (and some of the other steps ) have 'instance' versions where the current instance of the mock
+The lambda steps (and some of the other steps) have 'instance' versions where the current instance of the mock
 is passed as an additional parameter. This parameter is always untyped (well, passed as object), so you'll need
 to cast it to one of the mocked interfaces (or the mocking class itself) for it to be of any use.
 
@@ -183,7 +183,7 @@ Log steps
 `Log` steps are essentially your quintessential debugging step. They won't do anything except write out anything that
 passes through them to the console (or any other TextWriter) in some detail.
 
-Therefore you can just add in a `.Log()` if you need to figure out what happens with a given mock. Note that it's best
+Therefore you can just add in a `.Log()` if you need to figure out what happens with a given mock. Note that they are best
 added early in a mock step chain if you want to get a faithful representation of what's being called from the code you
 are testing, as steps can short-circuit calls or make calls of their own down the chain.
 
@@ -228,7 +228,7 @@ Each of the record versions will cater for one type of interaction only (method 
 get, property set, event add or event remove), and it will take a Func from the inforamtion passed to or returned from
 these calls to something that you want to store. They also provide the ledger with recorded data as an out parameter.
 
-There is currently no mechanism for letting record steps share ledger with each other.
+There is currently no mechanism for letting record steps share ledgers with one another.
 
 .. sourcecode:: csharp
 
@@ -300,8 +300,26 @@ is a dictionary which has the default return value for all non-set keys.
 When creating a stored step you can give it an initial value, and you can use verifications to check that the stored value
 has been set correctly by the components that are under test.
 
+Stored steps are also used with events, and is currently the only way in Mocklis to actually invoke events. You can either
+do this by invoking the stored handler, or if you use the generic EventHandler there is a version that actually gives you
+a `Raise` method.
 
+.. sourcecode:: csharp
 
+    [Fact]
+    public void RaiseEvent()
+    {
+        var mock = new MockSample();
+        mock.MyEvent.Stored<EventArgs>(out var eventStep);
+        bool hasBeenCalled = false;
+
+        ISample sample = mock;
+        sample.MyEvent += (s, e) => hasBeenCalled = true;
+            
+        eventStep.Raise(null, EventArgs.Empty);
+        // equivalent: eventStep.EventHandler?.Invoke(null, EventArgs.Empty);
+        Assert.True(hasBeenCalled);
+    }
 
 
 Throw steps
@@ -345,13 +363,24 @@ There are also verifications that check some condition of an existing step (unim
 
 .. sourcecode:: csharp
 
-    var vg = new VerificationGroup();
-    var mock = new MockSample();
-    mock.TotalLinesOfCode
-        .Stored(50)
-        .CurrentValueCheck(vg, "TLC", 60);
+    [Fact]
+    public void JustChecks()
+    {
+        var vg = new VerificationGroup();
+        var mock = new MockSample();
+        mock.TotalLinesOfCode
+            .Stored(50)
+            .CurrentValueCheck(vg, "TLC", 60);
+
+        ISample sample = mock;
+        sample.TotalLinesOfCode = 60;
+
+        vg.Assert();
+    }
 
 These are the only verifications in the framework at the moment. The expected usage steps work for all different member types,
 and track the different access methods independently. The current value checks exist for properties and indexers only, where
 the latter takes a list of key-value pairs to check.
+
+To check that verifications have been met, call `Assert` on the top-most verification group, as done in the last example.
 

@@ -6,7 +6,7 @@ There are basically two things that you'll need to get hold of to run Mocklis. F
 test double classes from interface definitions. Then there is a library of pluggable 'steps' which provide bite-sized
 behaviours to the test doubles, along with some supporting code. This library is spread over a number of assemblies, most
 notably ``Mocklis.core`` which contains everything needed to compile test doubles, and ``Mocklis`` which you use in your tests
-to add behaviour.
+to add behaviour. Ok - so at the moment there are *only* those two...
 
 Code generation
 ===============
