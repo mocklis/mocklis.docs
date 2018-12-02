@@ -2,8 +2,6 @@
 Reference
 =========
 
-
-
 Steps
 =====
 
@@ -335,11 +333,25 @@ behaviours have been used in the right way by the system under test.
 
 Verifications come in two flavours. As normal steps they check data as it passes through them:
 
+.. sourcecode:: csharp
 
-// Demo of step
+    var vg = new VerificationGroup();
+    var mock = new MockSample();
+    mock.DoStuff
+        .ExpectedUsage(vg, "DoStuff",  1)
+        .Dummy();
 
+There are also verifications that check some condition of an existing step (unimaginatively, just called 'checks'):
 
-There are also verifications that check some condition of an existing step (unimaginatively, just called 'checks'...)
+.. sourcecode:: csharp
 
-The 
+    var vg = new VerificationGroup();
+    var mock = new MockSample();
+    mock.TotalLinesOfCode
+        .Stored(50)
+        .CurrentValueCheck(vg, "TLC", 60);
+
+These are the only verifications in the framework at the moment. The expected usage steps work for all different member types,
+and track the different access methods independently. The current value checks exist for properties and indexers only, where
+the latter takes a list of key-value pairs to check.
 
