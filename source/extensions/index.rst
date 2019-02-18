@@ -32,7 +32,7 @@ generic interface which encapsulates these method calls.
     {
         TValue Get(IMockInfo mockInfo);
         void Set(IMockInfo mockInfo, TValue value);
-    }            
+    }
 
 Ignoring the IMockInfo parameter for the moment, these represent what the different member types do, except these
 are modelled as if indexers always have `one` key, methods always `one` parameter and `one` result. Thanks to the
@@ -99,23 +99,19 @@ The mock parameter implements another interface. The method version looks like t
 
 .. sourcecode:: csharp
 
-    public interface IMethodStepCaller<out TParam, in TResult>
+    public interface ICanHaveNextMethodStep<out TParam, in TResult>
     {
         [EditorBrowsable(EditorBrowsableState.Never)]
         TStep SetNextStep<TStep>(TStep step) where TStep : IMethodStep<TParam, TResult>;
     }
 
-This means that anything implementing IMethodStep can be sent to anything implementing IMethodStepCaller as its 'next' step. Since this new
-step is returned, we could add another step after that, provided the step we added also implements the IMethodStepCaller interface.
+This means that anything implementing IMethodStep can be sent to anything implementing ICanHaveNextMethodStep as its 'next' step. Since this new
+step is returned, we could add another step after that, provided the step we added also implements the ICanHaveNextMethodStep interface.
 
 A step therefore accepts calls, potentially does something, and potentially forwards on to subsequent steps.
 
-We call a step that does not implement IMethodStepCaller `final`, and a step that does `medial`. In the same vein we could reference to
-the mock property classes themselves as `initial` steps, as they only implement the I-memberType-StepCaller interface but not the
-I-memberType-Step interface.
-
-Part of the contract for medial step is that if they aren't assigned any furthes steps to pass on calls to,
-they should behave as if they were given a `Missing` step. The following would return the value 120 once, 
+Part of the contract for a non-final step is that if they aren't assigned any furthes steps to pass on calls to,
+they should behave as if they were given a `Missing` step. The following would return the value 120 once,
 and from then on act as if the mock wasn't configured.
 
 .. sourcecode:: csharp
@@ -126,15 +122,15 @@ and from then on act as if the mock wasn't configured.
 
 The exception for the second call would look something like:
 
-    *Mocklis.Core.MockMissingException: No mock implementation found for getting value of Property 'ISample.TotalLinesOfCode'. Add one using 'TotalLinesOfCode' on the 'MockSample' class.*
+    *Mocklis.Core.MockMissingException: No mock implementation found for getting the value of Property 'ISample.TotalLinesOfCode'. Add one using 'TotalLinesOfCode' on your 'MockSample' instance.*
 
 If we take another look at this last code sample, we notice that we do not call `SetNextStep` anywhere. In fact you will very rarely (if ever) see
 these calls in your test code. The reason is that they're hidden in extension methods looking something along these lines:
 
 .. sourcecode:: csharp
 
-    public static IPropertyStepCaller<TValue> ReturnOnce<TValue>(
-        this IPropertyStepCaller<TValue> caller,
+    public static ICanHaveNextPropertyStep<TValue> ReturnOnce<TValue>(
+        this ICanHaveNextPropertyStep<TValue> caller,
         TValue value)
     {
         return caller.SetNextStep(new ReturnOncePropertyStep<TValue>(value));
@@ -146,11 +142,11 @@ in the case of `final` steps (where the extension method would normally have the
 else. For the `Stored` property steps, an IStoredProperty interface is returned which we can use to modify the stored value directly or add
 validation checks.
 
-As a last note, since method calls can have zero parameters and a void return type, we end up with effectively four different types of methods.
-To keep the mock class a little more readable, there are therefore four different method mock types, that all implement the `IMethodStepCaller`
-interface. There are also cases where the steps themselves come in different flavours depending on whether there are parameters and/or return types.
-The trick used by Mocklis is to represent a missing type with ValueTuple, but that means that there might be more than one valid step to use.
-
+As a last note, since method calls can have zero (or more) parameters and a void (or non-void) return type, we end up with effectively four different
+types of methods - nothing->nothing, nothing->something, something->nothing and something->something. To keep the mock class a little more readable
+there are therefore four different method mock types, that all implement the `ICanHaveNextMethodStep` interface. There are also cases where the steps
+themselves come in different flavours depending on whether there are parameters and/or return types. The trick used by Mocklis is to represent a
+missing type with ValueTuple, but that means that there might be more than one valid step to use.
 
 
 Writing new steps
@@ -158,12 +154,15 @@ Writing new steps
 
 The best way to learn about writing steps is to look at the source code for existing steps. But in the interest of documentation, here's a sample.
 
+Disclaimer: This is a silly example. You would never write test code that depends on the time of day. It was chosen because you can be absolutely
+certain that this step won't ever clash with anything in the Mocklis libraries themselves. (We sincerely hope...)
+
 Phase 1: Write a step
 ---------------------
 
 If you are writing a `final` step, implement the I-memberType-Step interface. You just need to implement this interface and you're done.
 
-If you are writing a `medial` step, consider (as in it is very strongly recommended) subclass the Medial-memberType-Step class, and override
+If you are writing a non-final step, consider (as in it is very strongly recommended) subclass the memberType-StepWithNext class, and override
 the I-memberType-Step members as you see fit. If you don't override them you'll just forward the call on, and if you override them you can
 use the `base` implementation to forward the call on.
 
@@ -173,7 +172,7 @@ Let's also say we're writing this for a property. We'll end up with something li
 
 .. sourcecode:: csharp
 
-    public class EndOfDayPropertyStep<TValue> : MedialPropertyStep<TValue>
+    public class EndOfDayPropertyStep<TValue> : PropertyStepWithNext<TValue>
     {
         private readonly int _cutOffHour;
 
@@ -241,7 +240,7 @@ Phase 3: Generalise
 -------------------
 
 The last phase is to look at your newly created step and consider whether it can be used in other situations. You should extend
-the step to the different member types if possible. 
+the step to the different member types if possible.
 
 In some cases the way a step works could depend on the complete state of the mock instance. In these cases you should add new
 steps with the same name as your existing ones, but prefixed with `Instance`. For this version you pass on the IMockInfo.Instance
@@ -381,7 +380,7 @@ that checks that a `stored` property step has the right value this includes:
 Then the Verify method checks the condition and returns one or more verification results.
 
 The extension method is slighly different from the one used for steps. For one thing there is no chaining
-going on through a `SetNextStep` method. Just use the interface exposed as a `this` parameter, add a VerificationGroup, use the 
+going on through a `SetNextStep` method. Just use the interface exposed as a `this` parameter, add a VerificationGroup, use the
 former to create the check instance and the latter to make the check available from the group. Then it can just return
 the access interface again if we want to attach more checks.
 
@@ -411,5 +410,5 @@ appropriate `TextWriter` is also a possibility.
 
 However if you need to do more advanced stuff, such as logging mocklis events as structured data (to things like Serilog)
 you can implement the ILogContext. This interface has individual methods for all different logging calls made by Mocklis.
-Implementing it should be a straightforward, if boring, exercise, and you can always look to the `TextWriterLogContext` for
-an example of how it can be done. 
+Implementing it should be a straightforward, if boring, exercise, and you can always look at the source code for the
+`Mocklis.Serilog2` for an example of how it can be done.

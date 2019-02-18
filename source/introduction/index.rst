@@ -38,14 +38,11 @@ Then you create an empty class implementing this interface, decorated with the `
     {
     }
 
-This will of course not compile in its current form. However, the presence of the MocklisClass attribute enables a refactoring action in Visual Studio.
+This will of course not compile in its current form. However, the presence of the MocklisClass attribute enables a code fix in Visual Studio.
 
 .. image:: UpdateMocklisClass.png
 
-*At the moment, this is all the MocklisClass attribute does. Properties on the attribute could be used in a future release to
-fine-tune how the code generator works.*
-
-When this refactoring is used, the contents of the class is replaced as follows:
+The code fix replaces the contents of the class as follows:
 
 .. sourcecode:: csharp
 
@@ -75,13 +72,15 @@ When this refactoring is used, the contents of the class is replaced as follows:
         Task IConnection.Send(Message message) => Send.Call(message);
     }
 
-You can see that the ``IConnection`` interface has been implicitly implemented, where the ``IConnection.ConnectionId`` property gets its value
-from a `Mock Property` with the same name, and that the same goes for the ``IConnection.Receive`` event and the ``IConnection.Send`` method.
+You can see that the ``IConnection`` interface has been explicitly implemented, where the ``IConnection.ConnectionId`` property gets its value
+from a `Mock Property` with the same name. The ``IConnection.Receive`` event forwards adds and removes to another ``Mock Property``, and the
+``IConnection.Send`` method forwards calls to yet another ``Mock Property``.
 
 *Note that the Mock Properties are always properties even if the members they support aren't: the Send method is paired with a Mock Property
 of type FuncMethodMock, the Receive event is paired with a Mock Property of type EventMock and so forth.*
 
-Instances of the class can now be used in places where the ``IConnection`` interface is expected.
+The practical upshot is that the ``IConnection`` interface is now implemented by the class, so that instances can be used in places where
+``IConnection`` is expected.
 
 Can be given specific behaviour
 ===============================
@@ -89,7 +88,9 @@ Can be given specific behaviour
 If we just use the class that was writter for us in a real test, the test would almost certainly fail. The default behaviour for a newly
 constructed `Mock Property` is to throw an exception, such as:
 
-``Mocklis.Core.MockMissingException : No mock implementation found for adding handler to Event 'IConnection.Receive'. Add one using 'Receive' on the 'MockConnection' class.``
+.. sourcecode:: none
+
+    Mocklis.Core.MockMissingException : No mock implementation found for adding a handler to Event 'IConnection.Receive'. Add one using 'Receive' on your 'MockConnection' instance.
 
 Mocklis classes are 'strict' mocks in the sense that without configuration, they will not try to help you out; all calls to the mock instance will
 throw a `MockMissingException`.
@@ -107,7 +108,7 @@ The next step up (pun very much not intended) from this is the 'Dummy' step: don
         // Arrange
         var mockConnection = new MockConnection();
         mockConnection.Receive.Dummy();
-        
+
         // Act
         var pingService = new PingService(mockConnection);
 
@@ -115,7 +116,7 @@ The next step up (pun very much not intended) from this is the 'Dummy' step: don
         Assert.IsNotNull(pingService);
     }
 
-The next step up from 'Dummy', if we actually need to remember what event handlers were actually added to the event is the `Stored` step, which
+The next step up from 'Dummy', if we need to remember what event handlers were actually added to the event is the `Stored` step, which
 will keep track of attached event handlers, and there are a number of other steps with other types of attachable behaviours.
 
 This chapter is just an introduction; see the reference for a complete list of steps and other constructs used to tune how `Mocklis Classes` work.
@@ -167,7 +168,7 @@ Take for instance this, somewhat contrived, test:
 
 .. sourcecode:: csharp
 
-    [Test]
+    [Fact]
     public void TestIndex()
     {
         // Arrange
@@ -194,7 +195,7 @@ Take for instance this, somewhat contrived, test:
         vg.Assert(includeSuccessfulVerifications: true);
     }
 
-This test will fail with the following output: 
+This test will fail with the following output:
 
 .. sourcecode:: none
 

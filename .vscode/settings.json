@@ -1,0 +1,4 @@
+{
+    "restructuredtext.confPath": "${workspaceFolder}\\source",
+    "restructuredtext.linter.extraArgs": [ "--ignore D001" ]
+}

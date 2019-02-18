@@ -2,12 +2,11 @@
 Reference
 =========
 
-Steps
-=====
+Standard Steps
+==============
 
-Steps are the building blocks of mock behaviours, and they can be chained together for more advanced cases.
-As such, steps are either `final` meaning they will handle any calls passed on to them, or `medial` meaning
-they may pass on calls to other steps.
+Steps are the building blocks of mock behaviours, and they can be chained together for more advanced cases,
+that is to say that some steps will let you add on further steps that they can optionally forward on calls to.
 
 Let's say that you have mocked an int property, where the first time you call it expect the value 120, the
 second time you expect the value 210, and for any calls after that it should throw a FileNotFoundException.
@@ -21,14 +20,18 @@ The following would do the trick:
         .ReturnOnce(210)
         .Throw(() => new FileNotFoundException());
 
-Here, the ReturnOnce steps are `medial`, and the throw step is `final`.
+The ReturnOnce steps can forward on calls, and the Throw step will always throw an exception and as such
+cannot chain in a further step. The extension methods used to add steps to mocks are written in such a way
+that you will get full intellisense and the ability to add steps to TotalLinesOfCode and ReturnOnce, but
+will not allow you to add anytihng to Throw (that is to say the Throw() extension method returns void). We
+sometimes refer to these steps as `final`.
 
 
 Conditional steps
 -----------------
 
 The conditional steps are steps that either branch out or cut short the invocation of a mocked member
-based on some condition. 
+based on some condition.
 
 The `If` steps branch to a different chain of steps if a given condition holds, with the option of
 joining the original remaining steps. In their basic form the decision is based on just information passed
@@ -41,7 +44,7 @@ indexers. When called for a `Set` action they will first `Get` the current value
 `Set` if that value differs from the current one.
 
 Here's a mock setup for an indexer. Note that the underlying name is used for the indexer, since it would
-not be well-formed c# to name a property `this[]`. The underlying name is usually `Item` - which is the reason
+not be well-formed C# to name a property `this[]`. The underlying name is usually `Item` - which is the reason
 why it's not possible (unless the indexer name has been changed via the ``IndexerNameAttribute``) to have
 a method named `Item` in a class with an indexer.
 
@@ -78,6 +81,16 @@ is a shorthand: `StoredWithChangeNotification`.
         .RaisePropertyChangedEvent(pch)
         .Stored();
 
+is equivalent to
+
+.. sourcecode:: csharp
+
+    var mock = new MockSampleWithNotifyPropertyChanged();
+    mock.PropertyChanged
+        .Stored(out var pch);
+    mock.TotalLinesOfCode
+        .StoredWithChangeNotification(pch);
+
 
 Dummy steps
 -----------
@@ -89,42 +102,6 @@ default values for anything that needs returning, including out and ref paramete
 
 Note also that `Dummy` steps are `final` - you cannot add anything to follow them.
 
-Gate steps
-----------
-
-There is somthing slightly unfortunate with this alphabetic ordering, in that the most complex and most experimental
-steps (`Gate`, `Join`, and to some extent `If`) appear before the more mundane ones (`Return` and `Stored` spring
-to mind).
-
-The idea behind a `Gate` is that it will complete a Task (as in the TPL), when the step is called. The Task can then be used to
-drive other things happening in the step, effectively forcing a strict ordering.
-
-*Syntax very experimental - only exists for `Method` mocks currently - might be killed off altogether...*
-
-.. sourcecode:: csharp
-
-    public async Task SuccessfulPing()
-    {
-        // Arrange
-        var mockConnection = new MockConnection();
-        mockConnection.Send
-            .Gate(out var sendGate)
-            .Return(Task.CompletedTask);
-        mockConnection.Receive
-            .Stored<MessageEventArgs>(out var messageReceive);
-        var pingService = new PingService(mockConnection);
-
-        // Act
-        var ping = pingService.Ping();
-        await sendGate.GatePassed;
-        messageReceive.Raise(mockConnection, new MessageEventArgs(new Message("PingResponse")));
-        var pingResult = await ping;
-
-        // Assert
-        Assert.True(pingResult);
-    }
-
-*Yes - kind of screams 'design phase not completed to our satisfaction', doesn't it?*
 
 Join steps
 ----------
@@ -315,7 +292,7 @@ a `Raise` method.
 
         ISample sample = mock;
         sample.MyEvent += (s, e) => hasBeenCalled = true;
-            
+
         eventStep.Raise(null, EventArgs.Empty);
         // equivalent: eventStep.EventHandler?.Invoke(null, EventArgs.Empty);
         Assert.True(hasBeenCalled);
@@ -340,7 +317,6 @@ which are tracked individually for getters, setters, adds and removes (and plain
 
 To get access to all `steps` and `checks` (see next section) for verifications you need to have the namespace `Mocklis.Verification`
 in scope via a using statement at the top of your file.
-
 
 
 Verifications
@@ -384,3 +360,41 @@ the latter takes a list of key-value pairs to check.
 
 To check that verifications have been met, call `Assert` on the top-most verification group, as done in the last example.
 
+Experimental Stuff
+==================
+
+Mocklis has a project & associated NuGet package for experimental things; Mocklis.Experimental. It is meant for things that are
+in a bit of flux and may either graduate to the main Mocklis package, or be found wanting and deleted.
+
+Gate steps
+----------
+
+The idea behind a `Gate` is that it will complete a Task (as in TPL Task), when the step is called. The Task can then be used to
+drive other things happening in the step, effectively forcing a strict ordering of events in the face of many threads running.
+
+The syntax is still very experimental - it only exists for `Method` mocks currently & might well be killed off altogether...
+
+.. sourcecode:: csharp
+
+    public async Task SuccessfulPing()
+    {
+        // Arrange
+        var mockConnection = new MockConnection();
+        mockConnection.Send
+            .Gate(out var sendGate)
+            .Return(Task.CompletedTask);
+        mockConnection.Receive
+            .Stored<MessageEventArgs>(out var messageReceive);
+        var pingService = new PingService(mockConnection);
+
+        // Act
+        var ping = pingService.Ping();
+        await sendGate.GatePassed;
+        messageReceive.Raise(mockConnection, new MessageEventArgs(new Message("PingResponse")));
+        var pingResult = await ping;
+
+        // Assert
+        Assert.True(pingResult);
+    }
+
+*Yes - kind of screams 'design phase not completed to our satisfaction', doesn't it?*
