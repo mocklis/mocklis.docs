@@ -38,7 +38,7 @@ Then you create an empty class implementing this interface, decorated with the `
     {
     }
 
-This will of course not compile in its current form. However, the presence of the MocklisClass attribute enables a code fix in Visual Studio.
+This will of course not compile in its current form. However, the presence of the ``MocklisClass`` attribute enables a code fix in Visual Studio.
 
 .. image:: UpdateMocklisClass.png
 
@@ -73,32 +73,32 @@ The code fix replaces the contents of the class as follows:
     }
 
 You can see that the ``IConnection`` interface has been explicitly implemented, where the ``IConnection.ConnectionId`` property gets its value
-from a `Mock Property` with the same name. The ``IConnection.Receive`` event forwards adds and removes to another ``Mock Property``, and the
-``IConnection.Send`` method forwards calls to yet another ``Mock Property``.
+from a `mock property` with the same name. The ``IConnection.Receive`` event forwards adds and removes to another `mock property`, and the
+``IConnection.Send`` method forwards calls to yet another `mock property`.
 
-*Note that the Mock Properties are always properties even if the members they support aren't: the Send method is paired with a Mock Property
-of type FuncMethodMock, the Receive event is paired with a Mock Property of type EventMock and so forth.*
+Note that the `mock properties` are always properties even if the members they support aren't: the ``IConnection.Send`` method is paired with a `mock property`
+of type ``FuncMethodMock``, the ``IConnection.Receive`` event is paired with a `mock property` of type ``EventMock`` and so forth.
 
-The practical upshot is that the ``IConnection`` interface is now implemented by the class, so that instances can be used in places where
-``IConnection`` is expected.
+The practical upshot is that the ``IConnection`` interface is now implemented by the class, so that instances of the class can be used in places where
+the ``IConnection`` interface is expected.
 
 Can be given specific behaviour
 ===============================
 
-If we just use the class that was writter for us in a real test, the test would almost certainly fail. The default behaviour for a newly
-constructed `Mock Property` is to throw an exception, such as:
+If we just use the class that was written for us in a real test, the test would almost certainly fail. The default behaviour for a newly
+constructed `mock property` is to throw an exception, such as:
 
 .. sourcecode:: none
 
     Mocklis.Core.MockMissingException : No mock implementation found for adding a handler to Event 'IConnection.Receive'. Add one using 'Receive' on your 'MockConnection' instance.
 
-Mocklis classes are 'strict' mocks in the sense that without configuration, they will not try to help you out; all calls to the mock instance will
-throw a `MockMissingException`.
+`Mocklis classes` are 'strict' mocks in the sense that without configuration, they will not try to help you out; all calls to the mock instance will
+throw a ``MockMissingException``.
 
-Mocklis classes are given specific behaviour using 'steps', small pieces of functionality that are added to the Mock Properties, and can be
-chained together to cater for more advanced use cases. The default behaviour is identical to what you would get with the 'Missing' step.
-The next step up (pun very much not intended) from this is the 'Dummy' step: don't do anything, but also don't throw exceptions and use
-`default` as a return value whenever one is asked for. The test that caused the error above could be mended using this 'Dummy' step as follows:
+`Mocklis classes` are given specific behaviour using 'steps', small pieces of functionality that are added to the `mock properties`, and can be
+chained together to cater for more advanced use cases. The default behaviour is identical to what you would get with the ``Missing`` step.
+The next step up (pun very much not intended) from this is the ``Dummy`` step: don't do anything, but also don't throw exceptions and use
+`default` as a return value whenever one is asked for. The test that caused the error above could be mended using this ``Dummy`` step as follows:
 
 .. sourcecode:: csharp
 
@@ -116,17 +116,17 @@ The next step up (pun very much not intended) from this is the 'Dummy' step: don
         Assert.IsNotNull(pingService);
     }
 
-The next step up from 'Dummy', if we need to remember what event handlers were actually added to the event is the `Stored` step, which
-will keep track of attached event handlers, and there are a number of other steps with other types of attachable behaviours.
+The next step up from ``Dummy`` is the ``Stored`` step which will keep track of attached event handlers (and allow us to raise events on these handlers
+if we wish to do so), and there are a number of other steps with other types of attachable behaviours.
 
 This chapter is just an introduction; see the reference for a complete list of steps and other constructs used to tune how `Mocklis Classes` work.
 
 Intellisense friendly
 =====================
 
-Intellisense is a great feature of modern code editors, and Mocklis is written to make the most of it. Your Mocklis Class exposes properties
-for members of implemented interfaces. These properties have extension methods for all of the different steps that they support, which means
-that Visual Studio will list the available steps through intellisense.
+Intellisense is a great feature of modern code editors, and Mocklis is written to make the most of it. Your `Mocklis class` exposes `mock properties`
+for members of implemented interfaces. These `mock properties` have extension methods for all of the different steps that they support, which allows
+Visual Studio will list the available steps through intellisense.
 
 .. image:: Intellisense.png
 
@@ -134,23 +134,23 @@ Thanks to the extension method approach this list would also include any bespoke
 solution or in third party packages.
 
 When mocking out method calls, all arguments are combined into a named value tuple (unless that's exactly one in which case that is used),
-which means that we get intellisens for using those parameters as well.
+which means that we get intellisense for using those parameters as well.
 
 .. image:: Intellisense2.png
 
 Used as dependencies
 ====================
 
-Since Mocklis classes implement interfaces explicitly, we don't risk a name clash with the Mock Properties (and indeed if possible, the Mock
-Properties will be given the same name as the interface member it's paired with), and we can use the Mock instance directly wherever the
+Since `Mocklis classes` implement interfaces explicitly, we don't risk a name clash with the `mock properties` (and indeed if possible, the `mock properties`
+will be given the same name as the interface member it's paired with), and we can use the `Mocklis class` instance directly wherever the
 interface is expected.
 
-Mocklis classes can also implement more than one interface in cases where the component it acts as a stand-in for would implement more than
-one interface. Common cases include where a class would implement a service interface and `IDispose`, or an interface with property accessors
-and `INotifyPropertyChanged`. If you need to mock out an enumerable, your Mocklis class can mock both `IEnumerable<T>` and `IEnumerator<T>`
+`Mocklis classes` can also implement more than one interface in cases where the component it acts as a stand-in for would implement more than
+one interface. Common cases include where a class would implement a service interface and ``IDispose``, or an interface with property accessors
+and ``INotifyPropertyChanged``. If you need to mock out an enumerable, your `Mocklis class` can mock both ``IEnumerable<T>`` and ``IEnumerator<T>``
 at the same time.
 
-However, this also means that Mocklis classes can not derive from an existing class and create mocks for virtual members of such a class.
+However, this also means that `Mocklis classes` can not create mocks for virtual members of an (abstract) base class, as these can not be explicitly implemented.
 
 Verify interactions
 ===================
@@ -161,10 +161,10 @@ basic way is to not add any steps for code that you don't wish to be called. If 
 
 If you want to throw a different exception than ``MockMissingException`` you can use the ``Throw`` step.
 
-Mocklis also has a small set of verification classes and interfaces that can be used to add checks to your `Mock Properties` and to verify
-the contents of `Stored` steps.
+Mocklis also has a small set of verification classes and interfaces that can be used to add checks to your `mock properties` and to verify
+the contents of ``Stored`` steps.
 
-Take for instance this, somewhat contrived, test:
+Take for instance this, somewhat contrived (not to mention suspiciously self-contained) test:
 
 .. sourcecode:: csharp
 
@@ -212,7 +212,7 @@ This test will fail with the following output:
 Note that all verifications are checked - it will not stop at the first failure. By default the assertion
 will not show the Passed verifications (although the exception itself has a VerificationResult property,
 so you can always get to it). If you want to include all verifications in the exception message you need
-to pass true for the `includeSuccessfulVerifications` parameter, as done in the sample above.
+to pass true for the ``includeSuccessfulVerifications`` parameter, as was done in the sample above.
 
 Without reflection
 ==================
@@ -233,9 +233,9 @@ Pros
 Cons
 ----
 
-* Your project will include code for mocked interfaces.
+* Your project will include code for mocked interfaces, although that code can be reused by all tests using the interface.
 
 * The code in question has to be written, although the code generator bundled with Mocklis makes this much easier.
 
-* We only look at mocking interfaces, not virtual base classes. This could potentially be changed down the line, but it would make code generation a little bit harder (need to make sure there are no name clashes) and it is not felt to be that common a thing to do.
+* We can only only mock interfaces; not virtual base classes. This could potentially be changed down the line, but it would make code generation a little bit harder (need to make sure there are no name clashes) and it is not felt to be that common a thing to do.
 
