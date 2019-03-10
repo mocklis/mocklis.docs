@@ -6,6 +6,7 @@
 
 Makefile text eol=lf
 *.code-workspace text eol=lf
+*.rst text eol=lf
 
 # All image files are binary
 *.png binary

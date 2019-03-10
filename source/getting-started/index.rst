@@ -52,8 +52,9 @@ with fields for the services we'll use.
 
 We will at some point write proper implementations of these interfaces, but for now we want to just mock them out.
 
-Add two new classes, ``MockConsole`` and ``MockService``. Let them implement their corresponding interface, reference ``Mocklis.Analyzer``
-and ``Mocklis`` (which will in turn bring in ``Mocklis.Core``), and add the ``MocklisClass`` attribute to both classes.
+Add two new classes, ``MockConsole`` and ``MockService``. Let them implement their corresponding interface but should otherwise
+stay empty. Reference the ``Mocklis.MockGenerator`` and ``Mocklis`` NuGet packages from your project (the latter which will in turn bring
+in ``Mocklis.Core``), and add the ``MocklisClass`` attribute to both classes.
 
 .. sourcecode:: csharp
 
@@ -67,8 +68,9 @@ and ``Mocklis`` (which will in turn bring in ``Mocklis.Core``), and add the ``Mo
     {
     }
 
-Now you can use the 'Update Mocklis Class' code fix to create implementations for these interfaces. Right-click on ``MockConsole``
-and chose the fix from the context menu. Then do the same for ``MockService``. Your program should now compile.
+Now you can use the 'Update Mocklis Class' code fix to create implementations for these interfaces. Right-click anywhere on the ``MockConsole``
+class, and choose 'Quick Actions and Refactorings', followed by 'Update Mocklis Class' from the menu that has appeared. Then do the same
+for ``MockService``. Your program should now compile.
 
 *Note: The rest of this section relies on you having created mock implementations using Mocklis.*
 

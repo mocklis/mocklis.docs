@@ -386,7 +386,7 @@ The syntax is still very experimental - it currently only exists for 'Method' mo
 
         // Act
         var ping = pingService.Ping();
-        await sendGate.GatePassed;
+        await sendGate;
         messageReceive.Raise(mockConnection, new MessageEventArgs(new Message("PingResponse")));
         var pingResult = await ping;
 
