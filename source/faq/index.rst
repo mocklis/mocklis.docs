@@ -116,14 +116,14 @@ Resharper is what's going on... You will notice that the code compiles fine - th
 
 Hopefully it's fixed by the time you read this...
 
-Mocklis.Analyzer does not reference any other Mocklis package
-=============================================================
+Mocklis.MockGenerator does not reference any other Mocklis package
+==================================================================
 
-*Why do I have to manually add references to both Mocklis.Analyzer and Mocklis.Core? Surely the former doesn't work without the latter!*
+*Why do I have to manually add references to both Mocklis.MockGenerator and Mocklis.Core? Surely the former doesn't work without the latter!*
 
-Yes and no. The analyzer requires the existance of attributes and classes with the right names and namespaces, but they don't strictly speaking have
-to come from a NuGet package. You can copy the code straight from the Mocklis source code into your own project and the analyzer wouldn't be any the
+Yes and no. The generator requires the existance of attributes and classes with the right names and namespaces, but they don't strictly speaking have
+to come from a NuGet package. You can copy the code straight from the Mocklis source code into your own project and the generator wouldn't be any the
 wiser, indeed if you are writing Mocklis steps and spend a lot of time debugging them this really is the way to go. If there is interest, the Mocklis
 projects may well be made available in the form of Git Submodules to make this approach easier in the future.
 
-If we enforced loading the NuGet package versions of the libraries whenever the analyzer was added to a project this would no longer be possible - so we don't.
+If we enforced loading the NuGet package versions of the libraries whenever the generator was added to a project this would no longer be possible - so we don't.

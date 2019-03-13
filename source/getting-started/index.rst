@@ -92,7 +92,7 @@ instance has been created:
     {
     }
 
-Note that you didn't have to cast ``mockConsole`` to ``IConsole``, or ``MockService`` to ``IService``. As long as the parameters accepting the mocked
+Note that you didn't have to cast ``mockConsole`` to ``IConsole``, or ``mockService`` to ``IService``. As long as the parameters accepting the mocked
 instances are of an implemented interface type, C# will perform an implicit cast.
 
 Now we want to have a play with the interfaces. Let's say we read numbers off standard input until we get an empty string, pass them
@@ -420,7 +420,7 @@ The choice to use `virtual methods` for return 'by ref', and `mock properties` f
 made without knowing exactly how Mocklis will be used. The ``MocklissClass`` attribute defines two properties
 (``MockReturnsByRef`` which defaults to ``false``, and ``MockRetursByRefReadonly`` which defaults to ``true``)
 that control which method is used by each of these cases. It's not currently possible to use different approaches for
-different mocked-out members in the same interface.
+different mocked-out members in the same ``MocklisClass``.
 
 Mocklis should be able to provide something that compiles from any interface or (valid combination of) interfaces.
 In most cases this should be a `mock property`, that you can use steps with. It should also avoid
