@@ -228,7 +228,7 @@ Pros
 
 * You can easily extend Mocklis with your own steps, with whatever bespoke behaviour you might need.
 
-* The running of your tests is significantly faster than they would have been with on-the-fly generated dynamic proxies. *This is actually the main reason Mocklis was created in the first place.*
+* The running of your tests is significantly faster than they would have been with on-the-fly generated dynamic proxies.
 
 Cons
 ----

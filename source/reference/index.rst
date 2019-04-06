@@ -135,12 +135,14 @@ Lambda steps
 These steps are constructed with either an ``Action`` or a ``Func``, and when they are called the ``Action`` or ``Func`` will be
 run. In the case of ``Func`` the result of the call will be returned.
 
-In the current version of the code they only exist for methods, and for property and indexer getters, where in the
-latter case the indexer key is passed to the ``Func`` as a parameter.
+The names always contain the word ``Action`` or the word ``Func``, but they are further qualified for non-method steps. Property
+and indexer steps are called ``GetFunc`` and ``SetAction`` while event steps are called ``AddAction`` and ``RemoveAction``.
 
 The lambda steps (and some of the other steps) have 'instance' versions where the current instance of the mock
 is passed as an additional parameter. This parameter is always untyped (well, passed as object), so you'll need
-to cast it to one of the mocked interfaces (or the mocking class itself) for it to be of any use.
+to cast it to one of the mocked interfaces (or the mocking class itself) for it to be of any use. These steps have the names of
+their non-instance counterparts prefixed with the word ``Instance`` (so that ``InstanceSetAction`` would exist as a
+property step to give an example).
 
 Here's an example where a ``Send`` method takes a message of some reference type and returns a ``Task``:
 
@@ -297,6 +299,8 @@ provides you with ``Raise`` extension methods. These can be found in the ``Mockl
         Assert.True(hasBeenCalled);
     }
 
+For indexers the step is called ``StoredAsDictionary`` as it holds different values for different indexes. It will return a default
+value rather than throw if an empty slot is read from.
 
 Throw steps
 -----------
