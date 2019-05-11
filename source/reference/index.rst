@@ -179,20 +179,9 @@ Missing steps
 
 When one of these steps is invoked, it will throw a ``MockMissingException`` with information about the `mock property` itself.
 
-Part of the contract for writing steps that can chain on to further steps, is that if no other step has been added, we should
-proceed as if a ``Missing`` step was chained instead. You can happily think of ``Missing`` steps as the 'null object' for
-steps.
-
 The exception thrown could look something like this:
 
     *Mocklis.Core.MockMissingException: No mock implementation found for getting value of Property 'ISample.TotalLinesOfCode'. Add one using 'TotalLinesOfCode' on your 'MockSample' instance.*
-
-You won't normally need to add these yourself to your code, as they are in essence default values, but if you ever feel the need
-the syntax is simply:
-
-.. sourcecode:: csharp
-
-    mockSample.DoStuff.Missing();
 
 Record steps
 ------------
@@ -213,7 +202,7 @@ There is currently no mechanism for letting record steps share these 'ledgers' w
     {
         // Arrange
         var mockSamples = new MockSampleWithNotifyPropertyChanged();
-        mockSamples.PropertyChanged.RecordBeforeAdd(out var handlingTypes, h => h.Target?.GetType()).Dummy();
+        mockSamples.PropertyChanged.RecordBeforeAdd(out var handlingTypes, h => h.Target?.GetType());
 
         // Act
         ((INotifyPropertyChanged)mockSamples).PropertyChanged += OnPropertyChanged;
@@ -333,8 +322,7 @@ Verifications come in two flavours. As normal steps they check data as it passes
     var vg = new VerificationGroup();
     var mock = new MockSample();
     mock.DoStuff
-        .ExpectedUsage(vg, "DoStuff",  1)
-        .Dummy();
+        .ExpectedUsage(vg, "DoStuff",  1);
 
 ... and also as 'checks' that verify some condition of an existing step:
 

@@ -53,17 +53,21 @@ with fields for the services we'll use.
 We will at some point write proper implementations of these interfaces, but for now we want to just mock them out.
 
 Add two new classes, ``MockConsole`` and ``MockService``. Let them implement their corresponding interface but should otherwise
-stay empty. Reference the ``Mocklis.MockGenerator`` and ``Mocklis`` NuGet packages from your project (the latter which will in turn bring
-in ``Mocklis.Core``), and add the ``MocklisClass`` attribute to both classes.
+stay empty. Reference the ``Mocklis`` NuGet package from your project (the latter which will in turn bring
+in ``Mocklis.Core`` which will bring in the code generator), and add the ``MocklisClass`` attribute to both classes.
+
+For this walkthrough we need to add the 'Strict' parameter to the attributes - this is purely because we want to get exceptions
+for missing configurations to guide us to write more mocks. In your real life cases you may wish to have all mocks return
+default values instead of throwing exceptions in which case you should remove it.
 
 .. sourcecode:: csharp
 
-    [MocklisClass]
+    [MocklisClass(Strict = true)]
     public class MockConsole : IConsole
     {
     }
 
-    [MocklisClass]
+    [MocklisClass(Strict = true)]
     public class MockService : IService
     {
     }
@@ -199,7 +203,7 @@ Let's also write out the first recorded value (in fact the only recorded value) 
         var mockService = new MockService();
 
         mockConsole.ReadLine.Log().ReturnEach("8", "13", "21", string.Empty);
-        mockConsole.WriteLine.Log().RecordBeforeCall(out var consoleOut, a => a).Dummy();
+        mockConsole.WriteLine.Log().RecordBeforeCall(out var consoleOut);
         mockService.Calculate.Log().Func(m => m.Sum());
 
         var program = new Program(mockConsole, mockService);
@@ -208,9 +212,9 @@ Let's also write out the first recorded value (in fact the only recorded value) 
         Console.WriteLine("The value 'written' to console was " + consoleOut[0]);
     }
 
-The first parameter to ``RecordBeforeCall`` returns a list with the recorded values, and the second is a selector lambda. This is used because you may not want to record
-all of the data passed around, and furthermore if any of the parameters is mutable you may want to capture the current state at the time of recording. In
-this particular case we want to keep the whole thing, hence ``a => a``.
+The parameter to ``RecordBeforeCall`` returns a list with the recorded values, which by default is just a list of the values passed to the method. You may want to
+store a subset of these or do some calculation on some values (or if they are mutable, get the current values before they're changed) in which case you can add
+a selector func as a second parameter.
 
 The program now completes without any exceptions, with the following output:
 
@@ -304,12 +308,15 @@ Now Mocklis will generate a bit more code than normally:
     [MocklisClass]
     public class TypeParameters : ITypeParameters
     {
+        // The contents of this class were created by the Mocklis code-generator.
+        // Any changes you make will be overwritten if the contents are re-generated.
+
         private readonly TypedMockProvider _test = new TypedMockProvider();
 
         public FuncMethodMock<TIn, TOut> Test<TIn, TOut>() where TOut : struct
         {
             var key = new[] { typeof(TIn), typeof(TOut) };
-            return (FuncMethodMock<TIn, TOut>)_test.GetOrAdd(key, keyString => new FuncMethodMock<TIn, TOut>(this, "TypeParameters", "ITypeParameters", "Test" + keyString, "Test" + keyString + "()"));
+            return (FuncMethodMock<TIn, TOut>)_test.GetOrAdd(key, keyString => new FuncMethodMock<TIn, TOut>(this, "TypeParameters", "ITypeParameters", "Test" + keyString, "Test" + keyString + "()", Strictness.Lenient));
         }
 
         TOut ITypeParameters.Test<TIn, TOut>(TIn input) => Test<TIn, TOut>().Call(input);

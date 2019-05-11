@@ -58,10 +58,13 @@ See for instance the following interface / mock implementation pair:
     [MocklisClass]
     public class MockSample : ISample
     {
+        // The contents of this class were created by the Mocklis code-generator.
+        // Any changes you make will be overwritten if the contents are re-generated.
+
         public MockSample()
         {
-            MonthlyPayment = new FuncMethodMock<(double loanSize, double interestRate, int numberOfMonths), double>(this, "MockSample", "ISample", "MonthlyPayment", "MonthlyPayment");
-            Parse = new FuncMethodMock<string, (bool returnValue, int value)>(this, "MockSample", "ISample", "Parse", "Parse");
+            MonthlyPayment = new FuncMethodMock<(double loanSize, double interestRate, int numberOfMonths), double>(this, "MockSample", "ISample", "MonthlyPayment", "MonthlyPayment", Strictness.Lenient);
+            Parse = new FuncMethodMock<string, (bool returnValue, int value)>(this, "MockSample", "ISample", "Parse", "Parse", Strictness.Lenient);
         }
 
         public FuncMethodMock<(double loanSize, double interestRate, int numberOfMonths), double> MonthlyPayment { get; }
@@ -112,8 +115,11 @@ step is returned, we could add another step after that, provided the step we add
 A step therefore accepts calls, potentially does something, and potentially forwards on to subsequent steps.
 
 Part of the contract for a non-final step is that if they aren't assigned any furthes steps to pass on calls to,
-they should behave as if they were given a ``Missing`` step. The following would return the value 120 once,
-and from then on act as if the mock wasn't configured.
+they should look at the strictness of the mock to decide what to do. If the strictness is 'lenient' (the default) or if it is 'strict' (what you get
+if you set `Strict = true` but not `VeryStrict = true` on your ``MocklisClass`` attribute) you should just do nothing an return a default value
+if a return value is asked for. However if the strictness is 'very strict' you should throw a ``MockMissing`` exception.
+
+Note that a mock could be incompletely configured in a number of ways, consider the following:
 
 .. sourcecode:: csharp
 
@@ -121,7 +127,8 @@ and from then on act as if the mock wasn't configured.
     mock.TotalLinesOfCode
         .ReturnOnce(120);
 
-The exception for the second call would look something like:
+It is sufficiently configured for the first call, but the second would have to take strictness into account. The exception thrown in very strict mode for
+the second call would look something like:
 
 .. sourcecode:: none
 
@@ -167,7 +174,7 @@ If you are writing a 'final' step, implement the I-memberType-Step interface. Yo
 
 If you are writing a non-final step, consider (as in it is very strongly recommended) subclassing the memberType-StepWithNext class, and override
 the I-memberType-Step members as you see fit. If you don't override them the default behaviour is to just forward the calls on, and if you do override them you can
-use 'base' to forward the call on.
+use 'base' to forward the call on. Using this class also means that strictness checks are automatic.
 
 Let's say we're writing a step to nudge our overworked developers to go home by starting to throw exceptions after 5 o'clock.
 

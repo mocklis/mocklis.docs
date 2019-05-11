@@ -13,6 +13,9 @@ required to build the test doubles, and ``Mocklis`` which you use in your tests 
 for steps whose design is still under development (read: steps that simply haven't been axed yet...) and ``Mocklis.Serilog2`` which
 contains a logging provider for Serilog 2.x.
 
+Note that usually you will start off by referencing ``Mocklis`` because it references ``Mocklis.Core`` which in turn references
+``Mocklis.CodeGenerator``. To this you can then add any additional packages you need such as ``Mocklis.Serilog2`` or ``Mocklis.Experimental``.
+
 You can add the packages to your projects with the NuGet browser in Visual Studio, just make sure you have 'include prerelease'
 ticked since Mocklis is still in pre-release. Search for 'Mocklis' while on the Browse tab, and you should see the Mocklis
 packages and be able to add them to your projects.

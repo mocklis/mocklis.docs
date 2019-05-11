@@ -49,11 +49,14 @@ The code fix replaces the contents of the class as follows:
     [MocklisClass]
     public class MockConnection : IConnection
     {
+        // The contents of this class were created by the Mocklis code-generator.
+        // Any changes you make will be overwritten if the contents are re-generated.
+
         public MockConnection()
         {
-            ConnectionId = new PropertyMock<string>(this, "MockConnection", "IConnection", "ConnectionId", "ConnectionId");
-            Receive = new EventMock<EventHandler<MessageEventArgs>>(this, "MockConnection", "IConnection", "Receive", "Receive");
-            Send = new FuncMethodMock<Message, Task>(this, "MockConnection", "IConnection", "Send", "Send");
+            ConnectionId = new PropertyMock<string>(this, "MockConnection", "IConnection", "ConnectionId", "ConnectionId", Strictness.Lenient);
+            Receive = new EventMock<EventHandler<MessageEventArgs>>(this, "MockConnection", "IConnection", "Receive", "Receive", Strictness.Lenient);
+            Send = new FuncMethodMock<Message, Task>(this, "MockConnection", "IConnection", "Send", "Send", Strictness.Lenient);
         }
 
         public PropertyMock<string> ConnectionId { get; }
@@ -85,18 +88,55 @@ the ``IConnection`` interface is expected.
 Can be given specific behaviour
 ===============================
 
-If we just use the class that was written for us in a real test, the test would almost certainly fail. The default behaviour for a newly
-constructed `mock property` is to throw an exception, such as:
+If we just use the class that was written for us in a real test it might not work as expected. The default behaviour for a newly
+constructed `mock property` is to return default values for any out/ref parameters and return values from methods, indexers or properties.
+
+`Mocklis classes` are 'lenient' by default in the sense that without configuration, they will not get in your way but may also not provide you with anything useful.
+
+You can opt-in to making your mocks stricter, so that they will throw an exception when missing configuration. This is done by adding `Strict = true` to your ``MocklisClass``
+attribute.
+
+.. sourcecode:: csharp
+
+    [MocklisClass(Strict = true)]
+    public class MockConnection : IConnection
+    {
+        // The contents of this class were created by the Mocklis code-generator.
+        // Any changes you make will be overwritten if the contents are re-generated.
+
+        public MockConnection()
+        {
+            ConnectionId = new PropertyMock<string>(this, "MockConnection", "IConnection", "ConnectionId", "ConnectionId", Strictness.Strict);
+            Receive = new EventMock<EventHandler<MessageEventArgs>>(this, "MockConnection", "IConnection", "Receive", "Receive", Strictness.Strict);
+            Send = new FuncMethodMock<Message, Task>(this, "MockConnection", "IConnection", "Send", "Send", Strictness.Strict);
+        }
+
+        public PropertyMock<string> ConnectionId { get; }
+
+        string IConnection.ConnectionId => ConnectionId.Value;
+
+        public EventMock<EventHandler<MessageEventArgs>> Receive { get; }
+
+        event EventHandler<MessageEventArgs> IConnection.Receive {
+            add => Receive.Add(value);
+            remove => Receive.Remove(value);
+        }
+
+        public FuncMethodMock<Message, Task> Send { get; }
+
+        Task IConnection.Send(Message message) => Send.Call(message);
+    }
+
+Now instead of doing nothing and returning a bare minimum, the use of any mock would throw an exception instead, something like:
 
 .. sourcecode:: none
 
     Mocklis.Core.MockMissingException : No mock implementation found for adding a handler to Event 'IConnection.Receive'. Add one using 'Receive' on your 'MockConnection' instance.
 
-`Mocklis classes` are 'strict' mocks in the sense that without configuration, they will not try to help you out; all calls to the mock instance will
-throw a ``MockMissingException``.
+Of course just doing nothing or throwing an exception doesn't help us write good tests. `Mocklis classes` are given specific behaviour using 'steps', small pieces of functionality
+that are added to the `mock properties`, and can be chained together to cater for more advanced use cases.
 
-`Mocklis classes` are given specific behaviour using 'steps', small pieces of functionality that are added to the `mock properties`, and can be
-chained together to cater for more advanced use cases. The default behaviour is identical to what you would get with the ``Missing`` step.
+The default behaviour is identical to what you would get with the ``Missing`` step.
 The next step up (pun very much not intended) from this is the ``Dummy`` step: don't do anything, but also don't throw exceptions and use
 `default` as a return value whenever one is asked for. The test that caused the error above could be mended using this ``Dummy`` step as follows:
 
@@ -107,7 +147,9 @@ The next step up (pun very much not intended) from this is the ``Dummy`` step: d
     {
         // Arrange
         var mockConnection = new MockConnection();
-        mockConnection.Receive.Dummy();
+        mockConnection.Receive
+            .Log()
+            .Stored(out var registeredEvents);
 
         // Act
         var pingService = new PingService(mockConnection);
@@ -116,7 +158,7 @@ The next step up (pun very much not intended) from this is the ``Dummy`` step: d
         Assert.IsNotNull(pingService);
     }
 
-The next step up from ``Dummy`` is the ``Stored`` step which will keep track of attached event handlers (and allow us to raise events on these handlers
+The ``Stored`` step which will keep track of attached event handlers (and allow us to raise events on these handlers
 if we wish to do so), and there are a number of other steps with other types of attachable behaviours.
 
 This chapter is just an introduction; see the reference for a complete list of steps and other constructs used to tune how `Mocklis Classes` work.

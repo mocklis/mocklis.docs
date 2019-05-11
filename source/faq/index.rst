@@ -79,11 +79,12 @@ with steps that use ``ValueTuple``, in which case it generally pays to look for 
 
 *When my mock is called, it throws a ``MockMissingException``. But I'm absolutely certain that I did provide a mock implementation. What's going on?*
 
-The answer is that you probably didn't add a step that would handle the call instead of passing it on to another step. Assuming this is the case...
+Update: This now only happens when the MocklisClass attribute was declared with a ``VeryStrict = true`` parameter. The new behaviour (since version
+0.2.0-alpha) for both lenient and strict (as in not 'very' strict) mocks is that all steps assume an implicit ``Dummy`` step for all further extension
+points. In 'very strict' mode there is an implicit ``Missing`` step instead and an exception will be thrown.
 
-When a step is added that can forward the call to a 'next' step, it will default that next step to throw the ``MockMissing`` exception. It was a judgement
-call whether to have next steps default to ``Missing`` or to ``Dummy`` steps, and the reason for going with ``Missing`` was effectively that at least
-you'd be told (in no uncertain terms, in the form of a ``MockMissingException``) when you have an incomplete mock implementation.
+You can think of the 'very strict' mode as akin to 'treat warnings as errors'. It's a bit of a pain but it can help find issues with your mocks, and
+this was thought to be important enough for this to be the default mode.
 
 The solution is to chain a next step that does what you want the mock to do, be it ``Dummy`` step, a ``Return`` step or anything else.
 
@@ -103,7 +104,7 @@ The ``Log`` step will log the call, and then forward to the 'default' next step 
 
     misc.ScaleByTheAnswer.Log().Dummy();
 
-And of course it doesn't have to be ``Dummy();`` - looking at the name of the method an appropriate mock might be ``.Func(i => c * 42);``...
+And of course it doesn't have to be ``Dummy();`` - looking at the name of the method an appropriate mock might be ``.Func(i => i * 42);``...
 
 The modifier 'readonly' is not valid...
 =======================================
@@ -115,15 +116,3 @@ Resharper is what's going on... You will notice that the code compiles fine - th
 `https://youtrack.jetbrains.com/issue/RSRP-473141 <https://youtrack.jetbrains.com/issue/RSRP-473141>`_
 
 Hopefully it's fixed by the time you read this...
-
-Mocklis.MockGenerator does not reference any other Mocklis package
-==================================================================
-
-*Why do I have to manually add references to both Mocklis.MockGenerator and Mocklis.Core? Surely the former doesn't work without the latter!*
-
-Yes and no. The generator requires the existance of attributes and classes with the right names and namespaces, but they don't strictly speaking have
-to come from a NuGet package. You can copy the code straight from the Mocklis source code into your own project and the generator wouldn't be any the
-wiser, indeed if you are writing Mocklis steps and spend a lot of time debugging them this really is the way to go. If there is interest, the Mocklis
-projects may well be made available in the form of Git Submodules to make this approach easier in the future.
-
-If we enforced loading the NuGet package versions of the libraries whenever the generator was added to a project this would no longer be possible - so we don't.
