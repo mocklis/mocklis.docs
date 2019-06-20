@@ -175,10 +175,10 @@ Visual Studio will list the available steps through intellisense.
 Thanks to the extension method approach this list would also include any bespoke steps that have been added, whether defined in your own
 solution or in third party packages.
 
-When mocking out method calls, all arguments are combined into a named value tuple (unless that's exactly one in which case that is used),
+When mocking out method calls, all arguments are combined into a named value tuple (unless there's exactly one in which case that one is used),
 which means that we get intellisense for using those parameters as well.
 
-.. image:: Intellisense2.png
+.. image:: intellisense2.png
 
 Used as dependencies
 ====================

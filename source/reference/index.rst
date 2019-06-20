@@ -324,6 +324,10 @@ Verifications come in two flavours. As normal steps they check data as it passes
     mock.DoStuff
         .ExpectedUsage(vg, "DoStuff",  1);
 
+    ...
+
+    vg.Assert();
+
 ... and also as 'checks' that verify some condition of an existing step:
 
 .. sourcecode:: csharp
