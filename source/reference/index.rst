@@ -126,7 +126,7 @@ the ``Stored`` step itself and using that as a join point:
 .. sourcecode:: csharp
 
     var mockDishes = new MockDishes();
-    mockDishes.Vichyssoise.JoinPoint.Stored(out var soup);
+    mockDishes.Vichyssoise.Stored(out var soup);
     mockDishes.Revenge.Join(soup);
 
 Lambda steps
@@ -157,13 +157,34 @@ Log steps
 ---------
 
 ``Log`` steps are your quintessential debugging steps. They won't do anything except write out anything that
-passes through them to the console (or any other TextWriter) in some detail.
+passes through them, by default to the console althought this can be tailored to your specific needs.
 
 Therefore you can just add in a ``.Log()`` if you need to figure out what happens with a given mock. Note that they are best
 added early in a mock step chain if you want to get a faithful representation of what's being called from the code you
 are testing, as steps can short-circuit calls or make calls of their own down the chain.
 
-See Conditional steps above for an example.
+The :doc:`../getting-started/index` makes extensive use of ``Log`` steps.
+
+If you're working with Xunit as your test framework, you probable know that you cannot write to the Console and expect
+the strings written to be part of the test output, and that instead your test class accepts an ``ITestOutputHelper``
+on the constructor. The recommended approach is to have your test class implement the ``ILogContextProvider`` interface.
+
+.. sourcecode:: csharp
+
+    public class Tests : ILogContextProvider
+    {
+        public ILogContext LogContext { get; }
+
+        protected Tests(ITestOutputHelper testOutputHelper)
+        {
+            LogContext = new WriteLineLogContext(testOutputHelper.WriteLine);
+        }
+    }
+
+Then you can replace all your calls to `Log()` with `Log(this)`, and the lines will be written to the ``ITestOutputHelper``.
+
+There is also a specific LogContext for Serilog 2.x if you add the ``Mocklis.Serilog2`` NuGet package. Create a ``SerilogContext``
+with an ``ILogger`` that has a test-framework compatible sink, and set LogContext to that as in the example above.
 
 Miscellaneous steps
 -------------------

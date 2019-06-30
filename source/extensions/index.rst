@@ -114,7 +114,7 @@ step is returned, we could add another step after that, provided the step we add
 
 A step therefore accepts calls, potentially does something, and potentially forwards on to subsequent steps.
 
-Part of the contract for a non-final step is that if they aren't assigned any furthes steps to pass on calls to,
+Part of the contract for a non-final step is that if they aren't assigned any further steps to pass on calls to,
 they should look at the strictness of the mock to decide what to do. If the strictness is 'lenient' (the default) or if it is 'strict' (what you get
 if you set `Strict = true` but not `VeryStrict = true` on your ``MocklisClass`` attribute) you should just do nothing an return a default value
 if a return value is asked for. However if the strictness is 'very strict' you should throw a ``MockMissing`` exception.
@@ -288,9 +288,7 @@ to pass manually created ValueTuple instances.
 Writing new verifications
 =========================
 
-Verification is one of the least 'polished' parts of Mocklis (and that's saying something...)
-
-The idea is to create a tree of binary checks that can be verified in one go. When verified, a read-only (and recursive) data structure is created,
+The idea behind Mocklis' verifications is to create a tree of binary checks that can be verified in one go. When verified, a read-only data structure is created,
 that contains information about all the verifications and whether they were successful or not.
 
 A verification implements the IVerifiable interface:
@@ -386,7 +384,7 @@ that checks that a ``Stored`` property step has the right value this includes:
 
 * The ``IStoredProperty`` to check the value of.
 * A string that allows us to give the verification a name to identify it by. This is genarally a recommended thing to do.
-* The expected value
+* The expected value.
 * An equality comparer to check that the value is right, where the default null will be replaced with ``EqualityComparer.Default``.
 
 Then the ``Verify`` method checks the condition and returns one or more verification results.

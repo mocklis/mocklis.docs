@@ -16,6 +16,7 @@ Mocklis is a source code generator for .net (currently C# only) which creates te
    introduction/index.rst
    installation/index.rst
    getting-started/index.rst
+   usage/index.rst
    reference/index.rst
    extensions/index.rst
    faq/index.rst
