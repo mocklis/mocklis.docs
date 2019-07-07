@@ -72,7 +72,7 @@ we only have one overload that works, since this method both accepts and returns
     });
 
 Again the compiler infers the type parameters, and you can of course shorten the lambda considerably. But in short: you may be presented
-with steps that use ``ValueTuple``, in which case it generally pays to look for a different step (or overload of the same step) that doesn't.
+with steps that use ``ValueTuple``, in which case it generally pays to look for versions of those steps that don't.
 
 "Missing" mock
 ==============

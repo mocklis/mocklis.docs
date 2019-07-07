@@ -7,9 +7,10 @@ The quick version
 
 Add the ``Mocklis`` nuget package to your test project.
 
-This can be done with the NuGet browser in Visual Studio, just make sure you have 'include prerelease'
-ticked since Mocklis is still in pre-release. Search for 'Mocklis' while on the Browse tab, and you should see the Mocklis
+This can be done with the NuGet browser in Visual Studio: Search for 'Mocklis' while on the Browse tab, and you should see the Mocklis
 packages and be able to add ``Mocklis`` to your project.
+
+You'll need to tick the checkbox that says 'Include prerelease' to see the ``Mocklis.Experimental`` package.
 
 .. image:: nuget.png
 

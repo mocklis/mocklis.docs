@@ -3,13 +3,13 @@ Introduction
 ============
 
 
-Mocklis is a mocking library for .net (currently C# only) that
+Mocklis is a mocking library for .net (currently C#) that
 
 * creates fake implementations of interfaces
 * that can be given specific behaviour
 * in an intellisense-friendly way
-* to be handed as dependencies for components we want to test
-* and verify that they are correctly interacted with
+* to be used as dependencies in components we want to test
+* letting us verify that they are correctly interacted with
 * without any use of reflection.
 
 
@@ -18,7 +18,7 @@ Let's go over these points one by one.
 Fake implementations of interfaces
 ==================================
 
-With Mocklis you take an interface that defines a dependency for a component we wish to test, for instance this IConnection interface:
+With Mocklis you take an interface that defines a dependency for a component we wish to test, for instance this IConnection interface (with some details such as `Message` and `MessageEventArgs` removed for brevity):
 
 .. sourcecode:: csharp
 
@@ -79,7 +79,7 @@ You can see that the ``IConnection`` interface has been explicitly implemented, 
 from a `mock property` with the same name. The ``IConnection.Receive`` event forwards adds and removes to another `mock property`, and the
 ``IConnection.Send`` method forwards calls to yet another `mock property`.
 
-Note that the `mock properties` are always properties even if the members they support aren't: the ``IConnection.Send`` method is paired with a `mock property`
+Note that the `mock properties` are generally properties even if the members they support aren't: the ``IConnection.Send`` method is paired with a `mock property`
 of type ``FuncMethodMock``, the ``IConnection.Receive`` event is paired with a `mock property` of type ``EventMock`` and so forth.
 
 The practical upshot is that the ``IConnection`` interface is now implemented by the class, so that instances of the class can be used in places where
@@ -114,7 +114,7 @@ by case basis using so-called `steps`.
 
 In this example, two steps were used. The ``Return`` step simply returns a value whenever the mock is used, and the ``Stored`` step tracks
 values written to the mock. In this case we also obtained a reference to the store, which tracked attached event handlers letting us raise
-an event on them for testing purposes.
+an event on them for testing purposes. (Exercise for the reader: implement the `Service` class so that the test passes...)
 
 This is of course just an introduction; see the :doc:`../reference/index` for a complete list of steps and other constructs used to control
 how `Mocklis Classes` work.
@@ -153,7 +153,7 @@ However, this also means that `Mocklis classes` can not create mocks for virtual
 Verify interactions
 ===================
 
-There are a number of ways in which you can verify that the 'component under test' makes the right calls to your mocked dependency. There are a couple of
+There are a number of ways in which you can verify that the 'component under test' makes the right calls to your mocked dependency. There are a number of ways to do this using steps:
 simple cases:
 
 * If you have a method you don't expect to be called, you can use a ``Throw`` step to throw an exception which will hopefully bubble up through your code and fail the test.
@@ -216,6 +216,9 @@ so you can always get to it). If you want to include all verifications in the ex
 to pass true for the ``includeSuccessfulVerifications`` parameter, as was done in the sample above. Without
 it you would only see the lines that failed.
 
+The `null` values in the example are placeholders for strings that would be added to the relevant lines in
+the result to help finding the culprit if the assertion failed.
+
 Without reflection
 ==================
 
@@ -231,7 +234,7 @@ Pros
 
 * You can easily extend Mocklis with your own steps, with whatever bespoke behaviour you might need.
 
-* The running of your tests is significantly faster than they would have been with on-the-fly generated dynamic proxies.
+* Running your tests is significantly faster than it would have been with on-the-fly generated dynamic proxies.
 
 Cons
 ----

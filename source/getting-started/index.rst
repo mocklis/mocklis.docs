@@ -51,8 +51,8 @@ with fields for the dependencies we'll use.
 
 We will at some point write proper implementations of these interfaces, but for now we want to just mock them out.
 
-Add two new classes, ``MockConsole`` and ``MockService``. Let them implement their corresponding interface but should otherwise
-stay empty. Reference the ``Mocklis`` NuGet package from your project and add the ``MocklisClass`` attribute to both classes.
+Add two new classes, ``MockConsole`` and ``MockService``. Let them implement their corresponding interface but otherwise
+remain empty. Reference the ``Mocklis`` NuGet package from your project and add the ``MocklisClass`` attribute to both classes.
 
 For this walkthrough we need to add the 'Strict' parameter to the attributes - this is purely because we want to get exceptions
 for missing configurations to guide us to write more mocks. In your real life cases you may wish to have all mocks return
@@ -74,11 +74,6 @@ Now you can use the `Update Mocklis Class` code fix to create implementations fo
 attribute you'll see that the first characters have an underline. This is Visual Studio hinting that there is a code fix available.
 Move your mouse over that area, and Visual Studio will provide you with a light-bulb. Click on the dropdown arrow and you'll see a list of
 suggestions. Pick 'Update Mocklis Class' from the list, which will create an implementation of the class. Do this for both classes.
-
-*If you find it a bit tricky to find the `hint` handle, you can change the 'Serevity' of the rule in your project as follows: In the
-solution explorer, expand References, Analyzers and Mocklis.MockGenerator. Right-click on the MocklisAnalyzer, and choose `Set Rule Severity`.
-Choose `Warning` and your entire MocklisClass will be underlined with a green squiggly line and you can update the class from
-anywhere.*
 
 Instantiate these mocks in the static ``Main``. Pass the instances to the constructor, create a non-static ``Run`` method and call it once the program
 instance has been created:

@@ -2,161 +2,6 @@
 Extending Mocklis
 =================
 
-How Mocklis works
-=================
-
-An interface in C# can contain four different types of members: events, methods, properties and indexers. However
-each of them is just syntactic suger over one or two method calls. In Mocklis we represent each with a
-generic interface that encapsulates these method calls.
-
-.. sourcecode:: csharp
-
-    public interface IEventStep<in THandler> where THandler : Delegate
-    {
-        void Add(IMockInfo mockInfo, THandler value);
-        void Remove(IMockInfo mockInfo, THandler value);
-    }
-
-    public interface IIndexerStep<in TKey, TValue>
-    {
-        TValue Get(IMockInfo mockInfo, TKey key);
-        void Set(IMockInfo mockInfo, TKey key, TValue value);
-    }
-
-    public interface IMethodStep<in TParam, out TResult>
-    {
-        TResult Call(IMockInfo mockInfo, TParam param);
-    }
-
-    public interface IPropertyStep<TValue>
-    {
-        TValue Get(IMockInfo mockInfo);
-        void Set(IMockInfo mockInfo, TValue value);
-    }
-
-Ignoring the IMockInfo parameter for the moment, these represent what the different member types do, except they
-are modelled as if indexers always have *one* key, methods always *one* parameter and *one* result. Thanks to the
-value tuple feature we can pretend that multiple values are one.
-
-Now it's just a question of transforming any interface member into one of these four standard forms, and this is
-done by the code generated my Mocklis.
-
-Each member of each interface we mock out is itself implemented explicitly (read: out of the way), and a `mock property`
-is added with the same name (if possible, otherwise a sequence number is added). The `mock property` is called from the
-explicit member implementation, where any transformations also take place.
-
-See for instance the following interface / mock implementation pair:
-
-.. sourcecode:: csharp
-
-    public interface ISample
-    {
-        double MonthlyPayment(double loanSize, double interestRate, int numberOfMonths);
-        bool Parse(string text, out int value);
-    }
-
-    [MocklisClass]
-    public class MockSample : ISample
-    {
-        // The contents of this class were created by the Mocklis code-generator.
-        // Any changes you make will be overwritten if the contents are re-generated.
-
-        public MockSample()
-        {
-            MonthlyPayment = new FuncMethodMock<(double loanSize, double interestRate, int numberOfMonths), double>(this, "MockSample", "ISample", "MonthlyPayment", "MonthlyPayment", Strictness.Lenient);
-            Parse = new FuncMethodMock<string, (bool returnValue, int value)>(this, "MockSample", "ISample", "Parse", "Parse", Strictness.Lenient);
-        }
-
-        public FuncMethodMock<(double loanSize, double interestRate, int numberOfMonths), double> MonthlyPayment { get; }
-
-        double ISample.MonthlyPayment(double loanSize, double interestRate, int numberOfMonths) => MonthlyPayment.Call((loanSize, interestRate, numberOfMonths));
-
-        public FuncMethodMock<string, (bool returnValue, int value)> Parse { get; }
-
-        bool ISample.Parse(string text, out int value)
-        {
-            var tmp = Parse.Call(text);
-            value = tmp.value;
-            return tmp.returnValue;
-        }
-    }
-
-When MonthlyPayment is called, it wraps the parameters sent to it into a single argument to the ``Call`` method on the ``FuncMethodMock`` property.
-
-With out parameters we need to work a little harder. The `mock property` now has only one in parameter but two out parameters (again wrapped in
-a value tuple). It's up to the generated code to juggle the pieces to the right places. Ref parameters are *both* sent as parameters to the
-`mock property`, and received back in the result.
-
-If there are no parameters, something akin to ``void`` would be useful. The closest thing we have is the non-generic ``ValueTuple`` struct, which
-to all intents and purposes is an empty declaration.
-
-If you look at the constructor of the example above, each of the `mock properties` take a couple of parameters, a reference to the mock instance
-itself, and a couple of strings with the name of the mock class, the names of the interface and member, and the name of the `mock property` (which
-often but not always is the same as the name of the member). This is exactly what can be found in the ``IMockInfo`` interface that is on every
-call on every I-membertype-Step interface. Steps can take advantage of this information if they want to; indeed the ``Missing`` step picks up
-the information from this parameter to provide the best possible exception message for the user.
-
-Ok - so the system under test uses a member on a mocked-out interface. The `Mocklis class` implements the interface and forwards the call on to
-a mock parameter of the right type. Then what?
-
-The mock parameter implements another interface. The method version looks like this, and the others are similar.
-
-.. sourcecode:: csharp
-
-    public interface ICanHaveNextMethodStep<out TParam, in TResult>
-    {
-        [EditorBrowsable(EditorBrowsableState.Never)]
-        TStep SetNextStep<TStep>(TStep step) where TStep : IMethodStep<TParam, TResult>;
-    }
-
-This means that anything implementing ``IMethodStep`` can be sent to anything implementing ``ICanHaveNextMethodStep`` as its 'next' step. Since this new
-step is returned, we could add another step after that, provided the step we added also implements the ``ICanHaveNextMethodStep`` interface.
-
-A step therefore accepts calls, potentially does something, and potentially forwards on to subsequent steps.
-
-Part of the contract for a non-final step is that if they aren't assigned any further steps to pass on calls to,
-they should look at the strictness of the mock to decide what to do. If the strictness is 'lenient' (the default) or if it is 'strict' (what you get
-if you set `Strict = true` but not `VeryStrict = true` on your ``MocklisClass`` attribute) you should just do nothing an return a default value
-if a return value is asked for. However if the strictness is 'very strict' you should throw a ``MockMissing`` exception.
-
-Note that a mock could be incompletely configured in a number of ways, consider the following:
-
-.. sourcecode:: csharp
-
-    var mock = new MockSample();
-    mock.TotalLinesOfCode
-        .ReturnOnce(120);
-
-It is sufficiently configured for the first call, but the second would have to take strictness into account. The exception thrown in very strict mode for
-the second call would look something like:
-
-.. sourcecode:: none
-
-    Mocklis.Core.MockMissingException: No mock implementation found for getting the value of Property 'ISample.TotalLinesOfCode'. Add one using 'TotalLinesOfCode' on your 'MockSample' instance.
-
-If we take another look at this last code sample, we notice that we do not call ``SetNextStep`` anywhere. In fact you will very rarely (if ever) see
-these calls in your test code. The reason is that they're hidden in extension methods looking something along these lines:
-
-.. sourcecode:: csharp
-
-    public static ICanHaveNextPropertyStep<TValue> ReturnOnce<TValue>(
-        this ICanHaveNextPropertyStep<TValue> caller,
-        TValue value)
-    {
-        return caller.SetNextStep(new ReturnOncePropertyStep<TValue>(value));
-    }
-
-Every step in Mocklis is paired with one or more such extension methods. They are normally exectly this straightforward - pass on any parameters
-to the step constructor, and chain in the new step via the ``SetNextStep`` method. They sometimes return the step itself as an out parameter, and
-in the case of final steps (where the extension method would normally have the return type ``void``) we have the opportunity to return something
-else. For the ``Stored`` property steps, an ``IStoredProperty`` interface is returned which we can use to modify the stored value directly or add
-validation checks.
-
-As a last note, since method calls can have zero (or more) parameters and a void (or non-void) return type, we end up with effectively four different
-types of methods - nothing->nothing, nothing->something, something->nothing and something->something. To keep the mock class a little more readable
-there are therefore four different method mock types, that all implement the ``ICanHaveNextMethodStep`` interface. There are also cases where the steps
-themselves come in different flavours depending on whether there are parameters and/or return types. The trick used by Mocklis is to represent a
-missing type with ``ValueTuple``, but that means that there might be more than one valid step to use.
 
 
 Writing new steps
@@ -172,10 +17,9 @@ Phase 1: Write a step
 
 If you are writing a 'final' step, implement the I-memberType-Step interface. You just need to implement this interface and you're done.
 
-If you are writing a non-final step, consider (as in it is very strongly recommended) subclassing the memberType-StepWithNext class, and override
-the I-memberType-Step members as you see fit. If you don't override them the default behaviour is to just forward the calls on, and if you do override them you can
-use 'base' to forward the call on. Using this class also means that strictness checks are automatic.
-
+If you are writing a non-final step, consider (as in: it is very strongly recommended) subclassing the memberType-StepWithNext class, and override
+the I-memberType-Step members as you see fit. Otherwise you need to implement strictness checks yourself, and the base class will give you
+overridable members to plug in your specific functionality where the base implementation will forward to a next step.
 Let's say we're writing a step to nudge our overworked developers to go home by starting to throw exceptions after 5 o'clock.
 
 Let's also say we're writing this for a property. We'll end up with something like this:
@@ -240,7 +84,8 @@ Now you can use your new step:
 
     var mock = new MockSample();
     mock.TotalLinesOfCode
-        .EndOfDay();
+        .EndOfDay()
+        .Return(50);
 
 With the obvious (well - depending on what time it is) result:
 
