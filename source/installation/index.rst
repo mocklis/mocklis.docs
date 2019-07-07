@@ -12,7 +12,7 @@ packages and be able to add ``Mocklis`` to your project.
 
 You'll need to tick the checkbox that says 'Include prerelease' to see the ``Mocklis.Experimental`` package.
 
-.. image:: nuget.png
+.. image:: nuget-new.png
 
 
 The slighly longer version
