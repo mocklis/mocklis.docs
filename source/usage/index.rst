@@ -10,12 +10,21 @@ with valid implementations of the interface memebers along with hooks through wh
 members on a case by case basis. It does this by means of an analyzer/code-fix pair. Any class that is decorated with the
 ``MocklisClass`` attribute will make the code-fix available.
 
+Note: From version 1.4.0 (currently in alpha), Mocklis has a source generator that can create the boilerplate code for you and
+keep it updated. In order to allow it to do this, you add a ``MocklisClass`` attribute as shown below, and make the class
+'partial'. It does not need to have a body, so the code will normally look something like this:
+
+.. sourcecode:: csharp
+
+    [MocklisClass]
+    public partial class MockMyViewModel : IMyViewModel;
+
 The code fix appears in Visual Studio as an underline of the first couple of characters in the attribute. Hover over these
 with the mouse, click on the arrow next to the light-bulb that appears and select 'Update Mocklis Class'.
 
 .. image:: generate.png
 
-*If you find it a bit tricky to find the right spot to hover over, you can change the 'Serevity' of the rule in your project as follows: In the
+*If you find it a bit tricky to find the right spot to hover over, you can change the 'Severity' of the rule in your project as follows: In the
 solution explorer, expand References, Analyzers and Mocklis.MockGenerator. Right-click on the MocklisAnalyzer, and choose `Set Rule Severity`.
 Choose `Warning` and your entire MocklisClass will be underlined with a green squiggly line and you can update the class from
 anywhere.*
