@@ -20,13 +20,13 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Mocklis'
-copyright = u'Copyright © 2019 Esbjörn Redmo and contributors. All rights reserved.'
+copyright = u'Copyright © 2019-2025 Esbjörn Redmo and contributors. All rights reserved.'
 author = u'Esbjörn Redmo'
 
 # The short X.Y version
-version = '1.0.0'
+version = '1.4'
 # The full version, including alpha/beta/rc tags
-release = '1.0.0'
+release = '1.4.0-beta.1'
 
 
 # -- General configuration ---------------------------------------------------

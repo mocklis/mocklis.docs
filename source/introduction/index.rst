@@ -29,51 +29,30 @@ With Mocklis you take an interface that defines a dependency for a component we 
         Task Send(Message message);
     }
 
-Then you create an empty class implementing this interface, and decorate it with the ``MocklisClass`` attribute.
+Then you create an empty partial class implementing this interface, and decorate it with the ``MocklisClass`` attribute.
 
 .. sourcecode:: csharp
 
     [MocklisClass]
-    public class MockConnection : IConnection
-    {
-    }
+    public partial class MockConnection : IConnection;
 
-This will of course not compile in its current form. However, the presence of the ``MocklisClass`` attribute enables a code fix in Visual Studio.
+This looks like it's missing interface implementations, and therefore shouldn't compile. By itself it does not, but Mocklis has created another file behind the scenes that provides the implementations for us.
 
-.. image:: UpdateMocklisClass2.png
+There are two simple ways to see the generated source code. One is to right-click on the ``MockConnection`` class name and select ``Go To Implementation``.
 
-The code fix replaces the contents of the class as follows:
+.. image:: GoToImplementation.png
 
-.. sourcecode:: csharp
+Then choose the generated file from the selection:
 
-    [MocklisClass]
-    public class MockConnection : IConnection
-    {
-        // The contents of this class were created by the Mocklis code-generator.
-        // Any changes you make will be overwritten if the contents are re-generated.
+.. image:: GoToImplementation2.png
 
-        public MockConnection()
-        {
-            ConnectionId = new PropertyMock<string>(this, "MockConnection", "IConnection", "ConnectionId", "ConnectionId", Strictness.Lenient);
-            Receive = new EventMock<EventHandler<MessageEventArgs>>(this, "MockConnection", "IConnection", "Receive", "Receive", Strictness.Lenient);
-            Send = new FuncMethodMock<Message, Task>(this, "MockConnection", "IConnection", "Send", "Send", Strictness.Lenient);
-        }
+The other quick way to look at the generated file is to locate it under the Mocklis.MockGenerator "Analyzer" in the Solution Explorer:
 
-        public PropertyMock<string> ConnectionId { get; }
+.. image:: GeneratedFilesFromAnalyzers.png
 
-        string IConnection.ConnectionId => ConnectionId.Value;
+Regardless of which way you get to the file, you will see the generated code in a read-only editor with a bar on the top allowing you to re-run the generator should you want to. This can sometimes be useful.
 
-        public EventMock<EventHandler<MessageEventArgs>> Receive { get; }
-
-        event EventHandler<MessageEventArgs> IConnection.Receive {
-            add => Receive.Add(value);
-            remove => Receive.Remove(value);
-        }
-
-        public FuncMethodMock<Message, Task> Send { get; }
-
-        Task IConnection.Send(Message message) => Send.Call(message);
-    }
+.. image:: GeneratedCode.png
 
 You can see that the ``IConnection`` interface has been explicitly implemented, where the ``IConnection.ConnectionId`` property gets its value
 from a `mock property` with the same name. The ``IConnection.Receive`` event forwards adds and removes to another `mock property`, and the
@@ -114,7 +93,7 @@ by case basis using so-called `steps`.
 
 In this example, two steps were used. The ``Return`` step simply returns a value whenever the mock is used, and the ``Stored`` step tracks
 values written to the mock. In this case we also obtained a reference to the store, which tracked attached event handlers letting us raise
-an event on them for testing purposes. (Exercise for the reader: implement the `Service` class so that the test passes...)
+an event on them for testing purposes. (Exercise for the reader: write some code for the `Service` class so that the test passes...)
 
 This is of course just an introduction; see the :doc:`../reference/index` for a complete list of steps and other constructs used to control
 how `Mocklis Classes` work.
@@ -230,7 +209,7 @@ There are pros and cons with this approach:
 Pros
 ----
 
-* What you see is what you get. No code is hidden from view, and you can freely set break points and inspect variables as you're debugging your tests.
+* The code is free from 'magic'. What you see is what you get, and you can set breakpoints in both your own and the generated code.
 
 * You can easily extend Mocklis with your own steps, with whatever bespoke behaviour you might need.
 
@@ -239,8 +218,6 @@ Pros
 Cons
 ----
 
-* Your project will include code for mocked interfaces, although that code can be reused by all tests using the interface.
-
-* The code in question has to be written, although the code generator bundled with Mocklis does this for you.
+* The auto-generated bits of the code live separate from the rest of the code.
 
 * The design only really works for interfaces and not for mocking members of virtual base classes.
