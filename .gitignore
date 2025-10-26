@@ -2,3 +2,7 @@ build/
 
 source/_static/
 source/_templates/
+source/_build/
+source/output/
+
+source/.venv/
