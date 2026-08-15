@@ -36,9 +36,35 @@ Then you create an empty partial class implementing this interface, and decorate
     [MocklisClass]
     public partial class MockConnection : IConnection;
 
-This looks like it's missing interface implementations, and therefore shouldn't compile. By itself it does not, but Mocklis has created another file behind the scenes that provides the implementations for us.
+The ``MocklisClass`` attribute is a signal to the Mocklis Source Generator to implement this interface for you behind the scene. You may see a red squiggly line in your editor
+for a little bit while the code is being generated, but it should go away almost right away. Looking at the declaration for the ConnectionMock class you can navigate to the
+generated code which looks a bit like this:
 
-There are two simple ways to see the generated source code. One is to right-click on the ``MockConnection`` class name and select ``Go To Implementation``.
+.. sourcecode:: csharp
+
+    partial class MockConnection : IConnection
+    {
+        public global::Mocklis.Core.PropertyMock<string> ConnectionId { get; }
+
+        string global::IConnection.ConnectionId => ConnectionId.Value;
+
+        public global::Mocklis.Core.EventMock<global::System.EventHandler<global::MocklisTest.MessageEventArgs>> Receive { get; }
+
+        event global::System.EventHandler<global::MessageEventArgs> global::IConnection.Receive { add => Receive.Add(value); remove => Receive.Remove(value); }
+
+        public global::Mocklis.Core.FuncMethodMock<global::Message, global::System.Threading.Tasks.Task> Send { get; }
+
+        global::System.Threading.Tasks.Task global::IConnection.Send(global::.Message message) => Send.Call(message);
+
+        public ConnectionMock() : base()
+        {
+            this.ConnectionId = new global::Mocklis.Core.PropertyMock<string>(this, "ConnectionMock", "IConnection", "ConnectionId", "ConnectionId", global::Mocklis.Core.Strictness.Lenient);
+            this.Receive = new global::Mocklis.Core.EventMock<global::System.EventHandler<global::MocklisTest.MessageEventArgs>>(this, "ConnectionMock", "IConnection", "Receive", "Receive", global::Mocklis.Core.Strictness.Lenient);
+            this.Send = new global::Mocklis.Core.FuncMethodMock<global::Message, global::System.Threading.Tasks.Task>(this, "ConnectionMock", "IConnection", "Send", "Send", global::Mocklis.Core.Strictness.Lenient);
+        }
+    }
+
+There are two simple ways to see this generated source code. One is to right-click on the ``MockConnection`` class name and select ``Go To Implementation``.
 
 .. image:: GoToImplementation.png
 
@@ -58,11 +84,15 @@ You can see that the ``IConnection`` interface has been explicitly implemented, 
 from a `mock property` with the same name. The ``IConnection.Receive`` event forwards adds and removes to another `mock property`, and the
 ``IConnection.Send`` method forwards calls to yet another `mock property`.
 
-Note that the `mock properties` are generally properties even if the members they support aren't: the ``IConnection.Send`` method is paired with a `mock property`
+Note that the `mock properties` are properties even if the members they support aren't: the ``IConnection.Send`` method is paired with a `mock property`
 of type ``FuncMethodMock``, the ``IConnection.Receive`` event is paired with a `mock property` of type ``EventMock`` and so forth.
 
 The practical upshot is that the ``IConnection`` interface is now implemented by the class, so that instances of the class can be used in places where
-the ``IConnection`` interface is expected.
+the ``IConnection`` interface is expected. And when members of this interface are invoked they call into something that we can control on an instance-by-instance basis.
+This is what comes next.
+
+*Note: With the 1.x versions of Mocklis it is also possible to use non-partial classes to implement mocks. If you do it this way you have to manually trigger a 'code fix' that implements the interface(s)
+in-place in your source code. This is only possible since the first version of Mocklis pre-dated source generators, and this "feature" may be removed in future versions.*
 
 Can be given specific behaviour
 ===============================

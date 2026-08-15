@@ -61,14 +61,10 @@ default values instead of throwing exceptions in which case leave out the `Stric
 .. sourcecode:: csharp
 
     [MocklisClass(Strict = true)]
-    public class MockConsole : IConsole
-    {
-    }
+    public partial class MockConsole : IConsole;
 
     [MocklisClass(Strict = true)]
-    public class MockService : IService
-    {
-    }
+    public partial class MockService : IService;
 
 Now you can use the `Update Mocklis Class` code fix to create implementations for these interfaces. If you look at the MocklisClass
 attribute you'll see that the first characters have an underline. This is Visual Studio hinting that there is a code fix available.

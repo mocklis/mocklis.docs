@@ -49,6 +49,18 @@ to the setter are logged to the console, however.
         .IfSet(b => b.Log().Join(b.ElseBranch))
         .Stored(200);
 
+Note also that the branch lambda is evaluated right away when the mock is set up instead of when the mock is used.
+So if you do something like this you will end up with an empty array in the items variable:
+
+.. sourcecode:: csharp
+
+    var mock = new MockSampleWithSingleMethod();
+    var myItems = new List<string>();
+    mock.GetItems
+        .If(p => p.category == "My Items", m => m.Return(myItems.ToArray()));
+    myItems.Add("One shiny item.");
+    var items = ((ISampleWithSingleMethod)mock).GetItems("My Items");
+
 The last sample for a conditional step uses the ``OnlySetIfChanged`` conditional which only exists for properties
 and indexers. When an attempt to 'set' a value is made, the step will first try to 'get' the value, check if it's
 actually changed, and only 'set' the new value if it has.
@@ -73,7 +85,6 @@ is a shorthand: ``StoredWithChangeNotification``
         .Stored(out var pch);
     mock.TotalLinesOfCode
         .StoredWithChangeNotification(pch);
-
 
 Dummy steps
 -----------
@@ -262,6 +273,25 @@ Here's code that shows how to use these, and the repetition step:
     Assert.Equal(3, systemUnderTest.GuessTheSequence);
     Assert.Equal(3, systemUnderTest.GuessTheSequence);
     Assert.Equal(3, systemUnderTest.GuessTheSequence);
+
+ReturnTask steps
+----------------
+
+Since asynchronous code is very common and can be a bit painful to test, Mocklis has a step that removes the ``Task`` or the ``ValueTask``
+from the method that we're mocking out. The practical upshot is that if a subsequent step returns a value, this step turns it back to
+a task (of either kind) wrapping that value, and if a subsequent step throws an exception, it turns it back to a task wrapping the
+exception or cancellation.
+
+The following two mock set-ups are equivalent:
+
+.. sourcecode:: csharp
+
+    mock.DoStuffAsync.Func(() => Task.FromResult(42));
+
+    mock.DoStuffAsync.ReturnTask().Return(42);
+
+Note that you don't have to tell Mocklis whether you're using ``Task`` or ``ValueTask`` return types, since the return type is embedded in the generated
+source code. ReturnTask has overloads for both, and the right one will be picked automatically.
 
 Stored steps
 ------------

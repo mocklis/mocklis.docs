@@ -7,10 +7,7 @@ Generating Mocklis classes
 
 The Mocklis code generator takes a class which implements one or more interfaces and replaces the contents of that class
 with valid implementations of the interface memebers along with hooks through which you can control the behaviour of those
-members on a case by case basis. It does this by means of an analyzer/code-fix pair. Any class that is decorated with the
-``MocklisClass`` attribute will make the code-fix available.
-
-Note: From version 1.4.0 (currently in alpha), Mocklis has a source generator that can create the boilerplate code for you and
+members on a case by case basis. To do this, Mocklis has a source generator that can create the boilerplate code for you and
 keep it updated. In order to allow it to do this, you add a ``MocklisClass`` attribute as shown below, and make the class
 'partial'. It does not need to have a body, so the code will normally look something like this:
 
@@ -18,20 +15,6 @@ keep it updated. In order to allow it to do this, you add a ``MocklisClass`` att
 
     [MocklisClass]
     public partial class MockMyViewModel : IMyViewModel;
-
-The code fix appears in Visual Studio as an underline of the first couple of characters in the attribute. Hover over these
-with the mouse, click on the arrow next to the light-bulb that appears and select 'Update Mocklis Class'.
-
-.. image:: generate.png
-
-*If you find it a bit tricky to find the right spot to hover over, you can change the 'Severity' of the rule in your project as follows: In the
-solution explorer, expand References, Analyzers and Mocklis.MockGenerator. Right-click on the MocklisAnalyzer, and choose `Set Rule Severity`.
-Choose `Warning` and your entire MocklisClass will be underlined with a green squiggly line and you can update the class from
-anywhere.*
-
-The code generator will make use of any using statements it can find to storten names of types. It will not add any of its own, so if you
-generate a class and find that you end up with a lot of fully qualified types you can just add the relevant using statements, and then
-re-generate the class.
 
 The details of the code generation can be found in the :doc:`../reference/index` section.
 
@@ -69,7 +52,7 @@ For an example where the ``Strict=true`` parameter is used, see the :doc:`../get
 Return by reference
 '''''''''''''''''''
 
-C# 7 supports returning values by reference. However the ``ref`` keyword is not part of the returned type, and we cannot therefore
+C# supports returning values by reference since version 7. However the ``ref`` keyword is not part of the returned type, and we cannot therefore
 just introduce a Mocklis `mock`  where the return type is ``ref int`` rather than ``int``. So we can cheat by pretending that the call
 is not by reference, and then we wrap it in an object at the last minute to fulfil the contract specified with the ``ref`` keyword in
 the interface.
@@ -161,10 +144,7 @@ types are closed when instantiating the class.
     }
 
     [MocklisClass]
-    public class MockValueReader<T> : IValueReader<T>
-    {
-         // implementation removed for brevity
-    }
+    public partial class MockValueReader<T> : IValueReader<T>;
 
     // usage:
     var mock = new MockValueReader<string>();
@@ -181,9 +161,7 @@ For a more extreme example run the code generator on the following class:
 .. sourcecode:: csharp
 
     [MocklisClass]
-    public class MyDictionary<TKey> : IDictionary<TKey, string>
-    {
-    }
+    public partial class MyDictionary<TKey> : IDictionary<TKey, string>;
 
 It will happily expand out all the interfaces necessary for the implementation (such as ``ICollection<KeyValuePair<TKey, string>>``,
 and leave you with a `Mocklis class` you can instantiate with any key type you wish in your tests.
@@ -194,9 +172,8 @@ is that if T is substituted with 'int' then the interface declarations would uni
 
 .. sourcecode:: csharp
 
-    public class Incompatible<T> : IEnumerable<T>, IEnumerable<int>
-    {
-    }
+    public partial class Incompatible<T> : IEnumerable<T>, IEnumerable<int>;
+
 
 Type parameters on methods
 --------------------------
@@ -215,22 +192,15 @@ Now Mocklis will generate a bit more code than normally:
 
 .. sourcecode:: csharp
 
-    [MocklisClass]
-    public class TypeParameters : ITypeParameters
+    private readonly TypedMockProvider _test = new TypedMockProvider();
+
+    public FuncMethodMock<TIn, TOut> Test<TIn, TOut>() where TOut : struct
     {
-        // The contents of this class were created by the Mocklis code-generator.
-        // Any changes you make will be overwritten if the contents are re-generated.
-
-        private readonly TypedMockProvider _test = new TypedMockProvider();
-
-        public FuncMethodMock<TIn, TOut> Test<TIn, TOut>() where TOut : struct
-        {
-            var key = new[] { typeof(TIn), typeof(TOut) };
-            return (FuncMethodMock<TIn, TOut>)_test.GetOrAdd(key, keyString => new FuncMethodMock<TIn, TOut>(this, "TypeParameters", "ITypeParameters", "Test" + keyString, "Test" + keyString + "()", Strictness.Lenient));
-        }
-
-        TOut ITypeParameters.Test<TIn, TOut>(TIn input) => Test<TIn, TOut>().Call(input);
+        var key = new[] { typeof(TIn), typeof(TOut) };
+        return (FuncMethodMock<TIn, TOut>)_test.GetOrAdd(key, keyString => new FuncMethodMock<TIn, TOut>(this, "TypeParameters", "ITypeParameters", "Test" + keyString, "Test" + keyString + "()", Strictness.Lenient));
     }
+
+    TOut ITypeParameters.Test<TIn, TOut>(TIn input) => Test<TIn, TOut>().Call(input);
 
 The difference is that the `mock property` has been replaced with a generic `mock factory method`, and this in turn requires a slightly different syntax
 when adding steps; where your 'normal' tests used to look like this:
@@ -293,10 +263,7 @@ Inheritance
 
 The Mocklis code generator will not impose a base class for your `Mocklis classes`, nor will it prevent you from inheriting from them.
 
-The only real restriction is that the `Mocklis classes` must not be partial (as that introduces a whole new level of corner
-case cacaphony), or static (as you cannot implement an interface 'statically' on a class).
-
-But in short the class hierarchy is yours for making the most of; if you want to create a common ancestor for all your mocks you can
+In short the class hierarchy is yours for making the most of; if you want to create a common ancestor for all your mocks you can
 certainly do so, and if you want to override a `Mocklis class` to centralise configuration or add new functionality just go ahead.
 Mocklis will create constructors as necessary, all of which will be protected if the `Mocklis class` is abstract and public otherwise.
 
