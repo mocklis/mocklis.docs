@@ -20,7 +20,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'Mocklis'
-copyright = u'Copyright © 2019-2025 Esbjörn Redmo and contributors. All rights reserved.'
+copyright = u'Copyright © 2019-2026 Esbjörn Redmo and contributors. All rights reserved.'
 author = u'Esbjörn Redmo'
 
 # The short X.Y version
