@@ -5,7 +5,7 @@ Mocklis documentation
 .. image:: mocklis.png
 
 
-Mocklis is a source code generator for .net (currently C#) which creates test doubles from interfaces, along with an api for providing these test doubles with behaviour.
+Mocklis is a source code generator for .NET (currently C#) which creates test doubles from interfaces, along with an api for providing these test doubles with behaviour.
 
 
 .. toctree::

@@ -5,11 +5,11 @@ Reference
 The reference section consists of four parts: standard steps, verifications, code generation and experimental
 stuff.
 
-Standard Steps
+Standard steps
 ==============
 
 Find below a discussion of all the steps in the standard Mocklis package that you can use. The list is, perhaps
-unfortunately, in alphabetic order. This means that some of the more common steps are listed towards the end,
+unfortunately, in alphabetical order. This means that some of the more common steps are listed towards the end,
 but it makes a little bit more sense as a reference section in this way.
 
 Conditional steps
@@ -91,7 +91,7 @@ Dummy steps
 
 The ``Dummy`` steps will do as little as possible without throwing an exception. For a property or indexer, the
 step will do nothing for a setter, and return a default value for a getter. For an event, adding or removing
-an event handler do absolutely nothing, and for a method, it will not do anything with the parameters, and return
+an event handler does absolutely nothing, and for a method, it will not do anything with the parameters, and return
 default values for anything that needs returning, including out and ref parameters.
 
 Note also that ``Dummy`` steps are final - you cannot add anything to follow them.
@@ -101,7 +101,7 @@ Join steps
 ----------
 
 We've already met the ``Join`` step in the sample code for ``If`` above, where it allows us to take any step (with
-the right form - that is member type and type parameters) and use as the next step. The missing piece is a method
+the right form - that is member type and type parameters) and use it as the next step. The missing piece is a method
 to designate a step as such a target, which is where the ``JoinPoint`` comes in.
 
 Let's say that we want to connect two properties to the same ``Stored`` step. The solution is to add a ``JoinPoint``
@@ -155,7 +155,7 @@ Log steps
 ---------
 
 ``Log`` steps are your quintessential debugging steps. They won't do anything except write out anything that
-passes through them, by default to the console althought this can be tailored to your specific needs.
+passes through them, by default to the console, although this can be tailored to your specific needs.
 
 Therefore you can just add in a ``.Log()`` if you need to figure out what happens with a given mock. Note that they are best
 added early in a mock step chain if you want to get a faithful representation of what's being called from the code you
@@ -163,7 +163,7 @@ are testing, as steps can short-circuit calls or make calls of their own down th
 
 The :doc:`../getting-started/index` makes extensive use of ``Log`` steps.
 
-If you're working with Xunit as your test framework, you probably know that you cannot write to the Console and expect
+If you're working with xUnit as your test framework, you probably know that you cannot write to the Console and expect
 the strings written to be part of the test output, and that instead your test class accepts an ``ITestOutputHelper``
 on the constructor. The recommended approach is to have your test class implement the ``ILogContextProvider`` interface.
 
@@ -173,7 +173,7 @@ on the constructor. The recommended approach is to have your test class implemen
     {
         public ILogContext LogContext { get; }
 
-        protected Tests(ITestOutputHelper testOutputHelper)
+        public Tests(ITestOutputHelper testOutputHelper)
         {
             LogContext = new WriteLineLogContext(testOutputHelper.WriteLine);
         }
@@ -181,7 +181,7 @@ on the constructor. The recommended approach is to have your test class implemen
 
 Then you can replace all your calls to `Log()` with `Log(this)`, and the lines will be written to the ``ITestOutputHelper``.
 
-There is also a specific LogContext for Serilog 2.x if you add the ``Mocklis.Serilog2`` NuGet package. Create a ``SerilogContext``
+There is also a specific LogContext for Serilog if you add the ``Mocklis.Serilog4`` NuGet package (or ``Mocklis.Serilog3`` / ``Mocklis.Serilog2`` for older versions of Serilog). Create a ``SerilogContext``
 with an ``ILogger`` that has a test-framework compatible sink, and set LogContext to that as in the example above.
 
 Miscellaneous steps
@@ -245,7 +245,7 @@ For a sample see the next section, return steps.
 Return steps
 ------------
 
-Arguably the most important step of them all. The ``Return`` step, only useable in cases where some sort of return value is
+Arguably the most important step of them all. The ``Return`` step, only usable in cases where some sort of return value is
 expected, will simply return a value.
 
 There are three versions, one that just returns a given value once, and passes calls on to subsequent steps on later calls,
@@ -296,7 +296,7 @@ source code. ReturnTask has overloads for both, and the right one will be picked
 Stored steps
 ------------
 
-If the ``Return`` steps are the most used steps, the ``Stored`` steps are definitely the first runners up. These steps are defined
+If the ``Return`` steps are the most used steps, the ``Stored`` steps are definitely the first runner-up. These steps are defined
 for properties, playing backing field to the mocked property. They are also defined for indexers, where the backing structure
 is a dictionary which has the default return value for all non-set keys.
 
@@ -329,6 +329,45 @@ provides you with ``Raise`` extension methods. These can be found in the ``Mockl
 For indexers the step is called ``StoredAsDictionary`` as it holds different values for different keys. It will return a default
 value rather than throw if an empty slot is read from.
 
+Switch steps
+------------
+
+The ``Switch`` step lets a method mock behave differently depending on the parameters it is called with, much like a ``switch``
+statement. It is only available for methods. Rather than chaining a single next step, the ``Switch`` step returns an object on which you
+set up a number of branches: ``When`` takes a predicate over the method parameters and returns a step to which you can chain the behaviour for that branch,
+and ``Otherwise`` is where you put the behaviour for calls that don't match any branch.
+
+.. sourcecode:: csharp
+
+    public interface IPriceService
+    {
+        decimal GetPrice(string sku, int quantity);
+    }
+
+    [MocklisClass]
+    public partial class MockPriceService : IPriceService;
+
+    var mock = new MockPriceService();
+    var sw = mock.GetPrice.Switch();
+    sw.When(p => p.sku == "APPLE").Return(0.5m);
+    sw.When(p => p.quantity > 100).Return(0.1m);
+    sw.Otherwise.Throw(p => new KeyNotFoundException(p.sku));
+
+The branches are checked in the order they were added, and the first one whose predicate returns `true` is used. If no branch matches and nothing has
+been added to ``Otherwise``, the call is handled according to the strictness of the mock, just as if no steps had been added at all.
+
+If you pass ``consumeOnUse: true`` to the ``Switch`` step, each branch is removed once it has been used. This lets you script a sequence of
+responses for the same parameters:
+
+.. sourcecode:: csharp
+
+    var sw = mock.GetPrice.Switch(consumeOnUse: true);
+    sw.When(p => p.sku == "APPLE").Return(0.5m);  // first call for apples
+    sw.When(p => p.sku == "APPLE").Return(0.6m);  // second call for apples
+    sw.Otherwise.Return(1.0m);                    // everything else, including any further calls for apples
+
+Finally, ``Clear`` removes all branches and the ``Otherwise`` behaviour, returning the mock to its unprogrammed state.
+
 Throw steps
 -----------
 
@@ -341,7 +380,7 @@ Verification steps
 
 Verification steps are steps that track some condition that can be checked and asserted against.
 
-``ExpectedUsage`` steps take a verification group as a parameter, along with the number of time they
+``ExpectedUsage`` steps take a verification group as a parameter, along with the number of times they
 expect the mocked member to be called (which are tracked individually for getters, setters, adds, removes and plain method calls).
 
 To get access to all steps and checks (see next section) for verifications you need to have the namespace ``Mocklis.Verification``
@@ -391,11 +430,11 @@ the latter takes a list of key-value pairs to check.
 
 To check that verifications have been met, call ``Assert`` on the top-most verification group, as done in the last example.
 
-Mocklis Code Generation
+Mocklis code generation
 =======================
 
 An interface in C# can contain four different types of members: events, methods, properties and indexers. However
-each of them is just syntactic suger over one or two method calls. In Mocklis we represent each with a
+each of them is just syntactic sugar over one or two method calls. In Mocklis we represent each with a
 generic interface that encapsulates these method calls.
 
 .. sourcecode:: csharp
@@ -428,11 +467,22 @@ are modelled as if indexers always have *one* key, methods always *one* paramete
 value tuple feature we can pretend that multiple values are one.
 
 Now it's just a question of transforming any interface member into one of these four standard forms, and this is
-done by the code generated my Mocklis.
+done by the code generated by Mocklis.
 
 In the next few sections we'll go over the different things that Mocklis can generate for us. There are a number
 of corner cases in particular to do with naming, and we won't go over all of them here. For a reasonably complete
 set of cases see the ``Mocklis.MockGenerator.Tests`` project in the Mocklis source code.
+
+In each example the class you write yourself is just an empty partial class with the ``MocklisClass`` attribute, such as
+
+.. sourcecode:: csharp
+
+    [MocklisClass]
+    public partial class TestClass : ITestClass;
+
+and what is shown is the other half of that partial class, as created by the source generator. To keep the examples readable, the type names
+have been shortened; the actual generated files use fully qualified type names with a ``global::`` prefix, as in the example in the
+:doc:`../introduction/index`.
 
 Event mocks
 -----------
@@ -450,24 +500,20 @@ Let's say that we have an interface with an event.
     }
 
 The generated code for such an interface consists of three parts. The explicitly implemented event itself just forwards adds
-and removes to an EventMock, which is itself creted in the constructor and exposed as a property.
+and removes to an EventMock, which is itself created in the constructor and exposed as a property.
 
 .. sourcecode:: csharp
 
-    [MocklisClass]
-    public class TestClass : ITestClass
+    partial class TestClass
     {
-        // The contents of this class were created by the Mocklis code-generator.
-        // Any changes you make will be overwritten if the contents are re-generated.
-
-        public TestClass()
-        {
-            MyEvent = new EventMock<EventHandler>(this, "TestClass", "ITestClass", "MyEvent", "MyEvent", Strictness.Lenient);
-        }
-
         public EventMock<EventHandler> MyEvent { get; }
 
         event EventHandler ITestClass.MyEvent { add => MyEvent.Add(value); remove => MyEvent.Remove(value); }
+
+        public TestClass() : base()
+        {
+            this.MyEvent = new EventMock<EventHandler>(this, "TestClass", "ITestClass", "MyEvent", "MyEvent", Strictness.Lenient);
+        }
     }
 
 That's really all there is to it. A common question is how to raise events. The fact that an event itself has little to do with
@@ -477,30 +523,19 @@ event in order to correctly remember and combine handlers so you have something 
 exposed by the ``Stored`` step. See the documentation for a ``Stored`` step above for a complete example.
 
 Events can be generic-ish. For some reason it's not possible to have an event of type parameter type, even if that type parameter is
-contrained to delegate type. But you can have an event of a generic delegate type, such as EventHandler<T>.
+constrained to a delegate type. But you can have an event of a generic delegate type, such as EventHandler<T>.
 
 Property mocks
 --------------
 
 Like an event, a property has two accessor methods. In this case one to get a value, and one to set a value. Unlike an event you do
 not need to use both of them, as a property can be readonly or writeonly. The generated `mock property` doesn't make a distinction, and
-the generated code for an interface with three string propertis with different access looks like this:
+the generated code for an interface with three string properties with different access looks like this:
 
 .. sourcecode:: csharp
 
-    [MocklisClass]
-    class TestClass : ITestClass
+    partial class TestClass
     {
-        // The contents of this class were created by the Mocklis code-generator.
-        // Any changes you make will be overwritten if the contents are re-generated.
-
-        public TestClass()
-        {
-            ReadOnly = new PropertyMock<string>(this, "TestClass", "ITestClass", "ReadOnly", "ReadOnly", Strictness.Lenient);
-            WriteOnly = new PropertyMock<string>(this, "TestClass", "ITestClass", "WriteOnly", "WriteOnly", Strictness.Lenient);
-            ReadWrite = new PropertyMock<string>(this, "TestClass", "ITestClass", "ReadWrite", "ReadWrite", Strictness.Lenient);
-        }
-
         public PropertyMock<string> ReadOnly { get; }
 
         string ITestClass.ReadOnly => ReadOnly.Value;
@@ -512,6 +547,13 @@ the generated code for an interface with three string propertis with different a
         public PropertyMock<string> ReadWrite { get; }
 
         string ITestClass.ReadWrite { get => ReadWrite.Value; set => ReadWrite.Value = value; }
+
+        public TestClass() : base()
+        {
+            this.ReadOnly = new PropertyMock<string>(this, "TestClass", "ITestClass", "ReadOnly", "ReadOnly", Strictness.Lenient);
+            this.WriteOnly = new PropertyMock<string>(this, "TestClass", "ITestClass", "WriteOnly", "WriteOnly", Strictness.Lenient);
+            this.ReadWrite = new PropertyMock<string>(this, "TestClass", "ITestClass", "ReadWrite", "ReadWrite", Strictness.Lenient);
+        }
     }
 
 Properties can be generic. Properties can also be of `restricted type`, in which case the generated code will fall back to
@@ -524,12 +566,8 @@ virtual methods and you'll need to subclass and override to add behaviour rather
         Span<string> SpanProperty { get; set; }
     }
 
-    [MocklisClass]
-    class TestClass : ITestClass
+    partial class TestClass
     {
-        // The contents of this class were created by the Mocklis code-generator.
-        // Any changes you make will be overwritten if the contents are re-generated.
-
         protected virtual Span<string> SpanProperty()
         {
             throw new MockMissingException(MockType.VirtualPropertyGet, "TestClass", "ITestClass", "SpanProperty", "SpanProperty");
@@ -547,11 +585,11 @@ Indexer mocks
 -------------
 
 Indexers are, loosely speaking, properties with a parameter list, so most of the discussion for properties goes for indexers as
-well. Even thought indexers are declared with the `this` keyword, they have an internal name (that can be changed with the
+well. Even though indexers are declared with the `this` keyword, they have an internal name (that can be changed with the
 `IndexerName` attribute), and the default name is `Item`.
 
-In mocklis an indexer has a getter with *one* parameter type, and a return type, and a setter with *one* parameter type and a value type,
-but indexers can have more than one parameter. Here Mocklis uses `ValueTypes` to turn multiple types into one.
+In Mocklis an indexer has a getter with *one* parameter type, and a return type, and a setter with *one* parameter type and a value type,
+but indexers can have more than one parameter. Here Mocklis uses `ValueTuples` to turn multiple types into one.
 
 .. sourcecode:: csharp
 
@@ -560,20 +598,16 @@ but indexers can have more than one parameter. Here Mocklis uses `ValueTypes` to
         string this[int row, int col] { get; set; }
     }
 
-    [MocklisClass]
-    class TestClass : ITestClass
+    partial class TestClass
     {
-        // The contents of this class were created by the Mocklis code-generator.
-        // Any changes you make will be overwritten if the contents are re-generated.
-
-        public TestClass()
-        {
-            Item = new IndexerMock<(int row, int col), string>(this, "TestClass", "ITestClass", "this[]", "Item", Strictness.Lenient);
-        }
-
         public IndexerMock<(int row, int col), string> Item { get; }
 
         string ITestClass.this[int row, int col] { get => Item[(row, col)]; set => Item[(row, col)] = value; }
+
+        public TestClass() : base()
+        {
+            this.Item = new IndexerMock<(int row, int col), string>(this, "TestClass", "ITestClass", "this[]", "Item", Strictness.Lenient);
+        }
     }
 
 Note that the `mock property` uses the internal name of the indexer, it's not possible to expose a `this[]` property. Otherwise anything
@@ -582,14 +616,14 @@ that goes for a property also goes for an indexer.
 Method mocks
 ------------
 
-We're discussing methods last because these have the largest number of different cases, even thought the ``IMethodStep`` interface only
+We're discussing methods last because these have the largest number of different cases, even though the ``IMethodStep`` interface only
 has one member. As for the indexer, condensing multiple parameters into one is done using `ValueTuples`. We cannot encode whether a
 parameter is `in`, `out` or `ref` in the value tuple, so instead an `out` parameter is added to the return type, and a `ref` parameter
-is added both as a normal parameter an as part of the return type. This means that we can have multiple return types, and again these
+is added both as a normal parameter and as part of the return type. This means that we can have multiple return types, and again these
 are combined into a single `ValueTuple`.
 
 The canonical example is the `TryParse`. Notice that the mock takes a string and returns a (bool, int) pair. By naming the individual
-types in the `ValueTuple` we get intellisense, and the name `returnValue` is given to the value returned from the mocked method.
+types in the `ValueTuple` we get IntelliSense, and the name `returnValue` is given to the value returned from the mocked method.
 
 .. sourcecode:: csharp
 
@@ -598,17 +632,8 @@ types in the `ValueTuple` we get intellisense, and the name `returnValue` is giv
         bool TryParse(string text, out int result);
     }
 
-    [MocklisClass]
-    class TestClass : ITestClass
+    partial class TestClass
     {
-        // The contents of this class were created by the Mocklis code-generator.
-        // Any changes you make will be overwritten if the contents are re-generated.
-
-        public TestClass()
-        {
-            TryParse = new FuncMethodMock<string, (bool returnValue, int result)>(this, "TestClass", "ITestClass", "TryParse", "TryParse", Strictness.Lenient);
-        }
-
         public FuncMethodMock<string, (bool returnValue, int result)> TryParse { get; }
 
         bool ITestClass.TryParse(string text, out int result)
@@ -617,11 +642,16 @@ types in the `ValueTuple` we get intellisense, and the name `returnValue` is giv
             result = tmp.result;
             return tmp.returnValue;
         }
+
+        public TestClass() : base()
+        {
+            this.TryParse = new FuncMethodMock<string, (bool returnValue, int result)>(this, "TestClass", "ITestClass", "TryParse", "TryParse", Strictness.Lenient);
+        }
     }
 
 Method mocks can also return values by reference, and like `out` or `ref` parameters, the information that the value is to be returned `by ref` isn't part
 of the return type and thus cannot be encoded in the type parameters of the mock itself. Mocklis can handle this by treating the mock as if it was a normal
-`non-ref` method, and then wrap the return value in an object so that we can return a reference at the last minute. Granted, this doesn't provide the performance
+`non-ref` method, and then wrapping the return value in an object so that we can return a reference at the last minute. Granted, this doesn't provide the performance
 benefit that is sometimes looked for when using `ref` return values, but for tests this is usually good enough.
 
 .. sourcecode:: csharp
@@ -631,20 +661,17 @@ benefit that is sometimes looked for when using `ref` return values, but for tes
         ref readonly int GetRef();
     }
 
-    [MocklisClass]
-    class TestClass<T, U> : ITestClass<T, U> where U : new()
+    // declared as: [MocklisClass] public partial class TestClass<T, U> : ITestClass<T, U> where U : new();
+    partial class TestClass<T, U>
     {
-        // The contents of this class were created by the Mocklis code-generator.
-        // Any changes you make will be overwritten if the contents are re-generated.
-
-        public TestClass()
-        {
-            GetRef = new FuncMethodMock<int>(this, "TestClass", "ITestClass", "GetRef", "GetRef", Strictness.Lenient);
-        }
-
         public FuncMethodMock<int> GetRef { get; }
 
         ref readonly int ITestClass<T, U>.GetRef() => ref ByRef<int>.Wrap(GetRef.Call());
+
+        public TestClass() : base()
+        {
+            this.GetRef = new FuncMethodMock<int>(this, "TestClass", "ITestClass", "GetRef", "GetRef", Strictness.Lenient);
+        }
     }
 
 The default is to treat `ref readonly` returns in this manner, while using the virtual method fallback for `ref` returns. This can be controlled with
@@ -670,18 +697,14 @@ The generated code therefore contains a mock factory method instead of a mock pr
         string Write<T>(T param);
     }
 
-    [MocklisClass]
-    class TestClass : ITestClass
+    partial class TestClass
     {
-        // The contents of this class were created by the Mocklis code-generator.
-        // Any changes you make will be overwritten if the contents are re-generated.
-
         private readonly TypedMockProvider _write = new TypedMockProvider();
 
         public FuncMethodMock<T, string> Write<T>()
         {
             var key = new[] { typeof(T) };
-            return (FuncMethodMock<T, string>)_write.GetOrAdd(key, keyString => new FuncMethodMock<T, string>(this, "TestClass", "ITestClass", "Write" + keyString, "Write" + keyString + "()", Strictness.Lenient));
+            return (FuncMethodMock<T, string>)_write.GetOrAdd(key, keyString => new FuncMethodMock<T, string>(this, "TestClass", "ITestClass", "Write" + keyString, "Write" + keyString, Strictness.Lenient));
         }
 
         string ITestClass.Write<T>(T param) => Write<T>().Call(param);
@@ -697,7 +720,7 @@ abstract, and `public` otherwise.
 If the `MocklisClass` does derive from another class, all public and protected constructors from that base class will be given a corresponding constructor
 in the `MocklisClass`, passing on parameters as necessary.
 
-If you look at the constructors in the examples given, each of the `mock properties` take a couple of parameters, a reference to the mock instance
+If you look at the constructors in the examples given, each of the `mock properties` takes a couple of parameters: a reference to the mock instance
 itself, and a couple of strings with the name of the mock class, the names of the interface and member, and the name of the `mock property` (which
 often but not always is the same as the name of the member). It also takes the strictness used when creating the `MocklisClass` so that it can react
 correctly in the cases where the configuration is missing or incomplete. This is exactly what can be found in the ``IMockInfo`` interface that is on every
@@ -707,25 +730,16 @@ the information from this parameter to provide the best possible exception messa
 Name clashes
 ------------
 
-There are cases where the generated code for mocks would clash with either each other or with identifiers already declared in base classes. In these cases
+There are cases where the generated code for mocks would clash either with each other or with identifiers already declared in base classes. In these cases
 Mocklis will add a numerical suffix to the introduced identifier. To take a very simple example, ``IEnumerable<T>`` derives from ``IEnumerable``, and both
-have a `GetEnumerator` method. The generatod code looks like the following, and unfortunately you have to know which method you want to add a step to and
+have a `GetEnumerator` method. The generated code looks like the following, and unfortunately you have to know which method you want to add a step to and
 use the corresponding name.
 
 .. sourcecode:: csharp
 
-    [MocklisClass]
-    class TestClass : IEnumerable<int>
+    // declared as: [MocklisClass] public partial class TestClass : IEnumerable<int>;
+    partial class TestClass
     {
-        // The contents of this class were created by the Mocklis code-generator.
-        // Any changes you make will be overwritten if the contents are re-generated.
-
-        public TestClass()
-        {
-            GetEnumerator = new FuncMethodMock<IEnumerator<int>>(this, "TestClass", "IEnumerable", "GetEnumerator", "GetEnumerator", Strictness.Lenient);
-            GetEnumerator0 = new FuncMethodMock<System.Collections.IEnumerator>(this, "TestClass", "IEnumerable", "GetEnumerator", "GetEnumerator0", Strictness.Lenient);
-        }
-
         public FuncMethodMock<IEnumerator<int>> GetEnumerator { get; }
 
         IEnumerator<int> IEnumerable<int>.GetEnumerator() => GetEnumerator.Call();
@@ -733,6 +747,12 @@ use the corresponding name.
         public FuncMethodMock<System.Collections.IEnumerator> GetEnumerator0 { get; }
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator0.Call();
+
+        public TestClass() : base()
+        {
+            this.GetEnumerator = new FuncMethodMock<IEnumerator<int>>(this, "TestClass", "IEnumerable", "GetEnumerator", "GetEnumerator", Strictness.Lenient);
+            this.GetEnumerator0 = new FuncMethodMock<System.Collections.IEnumerator>(this, "TestClass", "IEnumerable", "GetEnumerator", "GetEnumerator0", Strictness.Lenient);
+        }
     }
 
 Name clashes can also appear in the type parameter names, and in the types used to create a `ValueTuple`. When creating a `ValueTuple` we could clash with
@@ -754,20 +774,17 @@ replaced with T in the class, and the same goes for TValue and U.
         TValue GetValue(TKey key);
     }
 
-    [MocklisClass]
-    class TestClass<T, U> : ITestClass<T, U>
+    // declared as: [MocklisClass] public partial class TestClass<T, U> : ITestClass<T, U>;
+    partial class TestClass<T, U>
     {
-        // The contents of this class were created by the Mocklis code-generator.
-        // Any changes you make will be overwritten if the contents are re-generated.
-
-        public TestClass()
-        {
-            GetValue = new FuncMethodMock<T, U>(this, "TestClass", "ITestClass", "GetValue", "GetValue", Strictness.Lenient);
-        }
-
         public FuncMethodMock<T, U> GetValue { get; }
 
         U ITestClass<T, U>.GetValue(T key) => GetValue.Call(key);
+
+        public TestClass() : base()
+        {
+            this.GetValue = new FuncMethodMock<T, U>(this, "TestClass", "ITestClass", "GetValue", "GetValue", Strictness.Lenient);
+        }
     }
 
 
@@ -775,7 +792,7 @@ replaced with T in the class, and the same goes for TValue and U.
 
 
 
-Experimental Stuff
+Experimental stuff
 ==================
 
 Mocklis has a project & associated NuGet package for experimental things: ``Mocklis.Experimental``. It is meant for things that are

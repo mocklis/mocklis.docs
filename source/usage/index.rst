@@ -5,9 +5,9 @@ Using Mocklis
 Generating Mocklis classes
 ==========================
 
-The Mocklis code generator takes a class which implements one or more interfaces and replaces the contents of that class
-with valid implementations of the interface memebers along with hooks through which you can control the behaviour of those
-members on a case by case basis. To do this, Mocklis has a source generator that can create the boilerplate code for you and
+The Mocklis code generator takes a class which implements one or more interfaces and adds to it
+valid implementations of the interface members along with hooks through which you can control the behaviour of those
+members on a case-by-case basis. To do this, Mocklis has a source generator that can create the boilerplate code for you and
 keep it updated. In order to allow it to do this, you add a ``MocklisClass`` attribute as shown below, and make the class
 'partial'. It does not need to have a body, so the code will normally look something like this:
 
@@ -25,7 +25,7 @@ The generated code can be customised to a degree using properties on the ``Mockl
 deal with how a mock should act when it's got an incomplete or missing configuration, and the other two deal with generating code
 for methods returning values by reference.
 
-One caveat: you can only set these properties to `true` or `false`. Anything else, like expressions, references to constants etc. will
+One caveat: you can only set these properties to `true` or `false`. Anything else, like expressions, references to constants, etc., will
 be interpreted as the default value for the parameter. Mocklis reads the parameters from code that has been parsed and analyzed, but
 it's not running code. While it may be theoretically possible to do the required evaluations from the semantic model this has not been
 attempted.
@@ -34,10 +34,10 @@ Strictness parameters
 '''''''''''''''''''''
 
 Normally when you call a member on a mock that doesn't have any steps assigned to it, it will do the least amount of work possible
-and return the least it can to the caller. In other words do nothing and return `default` where needed.
+and return the least it can to the caller. In other words, it does nothing and returns `default` where needed.
 
 This may or may not be what you want. Another approach is that you should assign steps for all members that you expect to be used;
-if any of your uncofigured members are being called that's a sign that your code is behaving in ways that you didn't expect. To get
+if any of your unconfigured members are being called that's a sign that your code is behaving in ways that you didn't expect. To get
 mocks that throw an exception whenever this happens you add a ``Strict=true`` parameter to the ``MocklisClass`` attribute.
 
 However we can be more draconian than that. Some steps will forward to further steps. If you want to throw not only on a completely
@@ -57,18 +57,18 @@ just introduce a Mocklis `mock`  where the return type is ``ref int`` rather tha
 is not by reference, and then we wrap it in an object at the last minute to fulfil the contract specified with the ``ref`` keyword in
 the interface.
 
-Now, there are (at leaste) two reasons for returning values by reference. One is that we wish to modify the original value through the
+Now, there are (at least) two reasons for returning values by reference. One is that we wish to modify the original value through the
 reference, the other is to improve performance where the returned type is larger than the size of a pointer. In the latter case we
-normally mark them as ``ref readonly`` to signal that you cannot make modifications through the reference. At least since C# 7.2 when
+normally mark them as ``ref readonly`` to signal that you cannot make modifications through the reference. At least since C# 7.2, when
 this feature was introduced.
 
 In the former case we usually need the reference to point to something known - so that the update has an effect that is visible to
-other code. In the second it doesn't matter if the reference is to a newly created wrapper object that's only there to fulfil a
+other code. In the latter it doesn't matter if the reference is to a newly created wrapper object that's only there to fulfil a
 contract. Therefore Mocklis' default behaviour differs between ``ref`` and ``ref readonly``; for ``ref readonly`` we cheerfully wrap
 and for ``ref`` we use a `virtual method` fallback: Instead of normal mocks, we define virtual methods for all accessors of the
 mocked member and instead of adding steps you need to subclass the ``MocklisClass`` class and add bespoke implementations there.
 The base implementation for these methods is to always throw a ``MockMissingException`` regardless of strictness level. This is for
-technical reasons, the fallback is used in other cases where it turns out to be remarkably tricky to produce code that does nothing,
+technical reasons; the fallback is used in other cases where it turns out to be remarkably tricky to produce code that does nothing,
 returns default values and at the same time compiles...
 
 But anyway.
@@ -79,8 +79,8 @@ but you can set it to false if you like, which means to use virtual methods to c
 Likewise the ``MockReturnsByRef`` parameter defaults to false (meaning to use the fallback), but you can set it to true if you like,
 changing the code created to deal with ``ref`` returns to use mocks and the wrapper solution.
 
-In the current version the parameters will affect all members in the class and there is no means by which we can chose what members
-to use what strategy for. There are no plans to change this but if you really need it please raise an issue on GitHub.
+In the current version the parameters will affect all members in the class and there is no means by which we can choose
+which strategy to use for which members. There are no plans to change this but if you really need it please raise an issue on GitHub.
 
 Adding steps
 ============
@@ -89,16 +89,16 @@ If you just need an object that implements an interface to pass to a constructor
 at all - just an instance will do.
 
 If the instance is used, but you don't really care about what it does or returns you will get away with not doing any configuration,
-as long as you've created a lenient mocklis class, which is after all the default.
+as long as you've created a lenient `Mocklis class`, which is after all the default.
 
-In other cases you'll need to add configuration via steps. To add steps you can get a lot of help from the intellisense feature of
+In other cases you'll need to add configuration via steps. To add steps you can get a lot of help from the IntelliSense feature of
 your code editor. Given a variable that contains an instance of a `Mocklis class`, you can type that variable and a dot to get a list
 of mock properties to choose from. Select one, and type another dot and it will give you a list of all the valid steps you can add at this point.
 
-Steps can be also chained together for more advanced cases. If a step can forward on call to other steps, type that dot directly after it
-(without ending the expression with a semi-colon) and intellisense will give you a list of valid steps to choose from.
+Steps can also be chained together for more advanced cases. If a step can forward calls on to other steps, type that dot directly after it
+(without ending the expression with a semicolon) and IntelliSense will give you a list of valid steps to choose from.
 
-Let's say that you have mocked an ``int`` property, where the first time you call it expect the value 120, the
+Let's say that you have mocked an ``int`` property, where the first time you call it you expect the value 120, the
 second time you expect the value 210, and for any calls after that it should throw a ``FileNotFoundException``.
 The following would do the trick:
 
@@ -112,22 +112,22 @@ The following would do the trick:
 
 The ``ReturnOnce`` steps can forward on calls, while the ``Throw`` step will always throw an exception and as such
 cannot chain in a further step. The extension methods used to add steps to mocks are written in such a way
-that you will get full intellisense and the ability to add steps to ``TotalLinesOfCode`` and ``ReturnOnce``, but
-will not allow you to add anytihng to ``Throw`` (that is to say the ``Throw`` extension method returns ``void``).
+that you will get full IntelliSense and the ability to add steps to ``TotalLinesOfCode`` and ``ReturnOnce``, but
+will not allow you to add anything to ``Throw`` (that is to say the ``Throw`` extension method returns ``void``).
 
 Since all steps are added through extension methods on the step type interface, any steps that you create yourself will automatically
-be available through intellisense.
+be available through IntelliSense.
 
 More details can be found in the :doc:`../reference/index` section.
 
-Work with type parameters
-=========================
+Working with type parameters
+============================
 
 Roslyn, the code analysis and compilation framework that the Mocklis code generator uses, makes some things
 that look simple very difficult. Fine-tuning layout of code springs to mind. It also makes some things that
 seem insanely difficult almost trivial. Using type parameters is one such case.
 
-There are two places where you can declare new type parameters, one is in the declaration of a class, struct
+There are two places where you can declare new type parameters: one is in the declaration of a class, struct
 or interface, and the other is when defining a method.
 
 Type parameters on interfaces and classes
@@ -156,18 +156,18 @@ If a ``MocklisClass`` implements more than one interface, either directly or thr
 A ``MocklisClass`` implementing ``IEnumerable<string>``, which in turn extends ``IEnumerable``, will have two different ``GetEnumerator`` methods; one
 from each interface, and they will need to be mocked out separately.
 
-For a more extreme example run the code generator on the following class:
+For a more extreme example, consider the following class:
 
 .. sourcecode:: csharp
 
     [MocklisClass]
     public partial class MyDictionary<TKey> : IDictionary<TKey, string>;
 
-It will happily expand out all the interfaces necessary for the implementation (such as ``ICollection<KeyValuePair<TKey, string>>``,
+It will happily expand out all the interfaces necessary for the implementation (such as ``ICollection<KeyValuePair<TKey, string>>``),
 and leave you with a `Mocklis class` you can instantiate with any key type you wish in your tests.
 
 A corner case to be aware of is that you cannot implement interfaces that could unify for some combinations of actual
-types but not others. The following is an invalid declaration, but not because IEnumerable is declaced twice That is perfectly ok. The issue
+types but not others. The following is an invalid declaration, but not because IEnumerable is declared twice. That is perfectly ok. The issue
 is that if T is substituted with 'int' then the interface declarations would unify, and otherwise they would remain separate. *That* is invalid.
 
 .. sourcecode:: csharp
@@ -197,7 +197,7 @@ Now Mocklis will generate a bit more code than normally:
     public FuncMethodMock<TIn, TOut> Test<TIn, TOut>() where TOut : struct
     {
         var key = new[] { typeof(TIn), typeof(TOut) };
-        return (FuncMethodMock<TIn, TOut>)_test.GetOrAdd(key, keyString => new FuncMethodMock<TIn, TOut>(this, "TypeParameters", "ITypeParameters", "Test" + keyString, "Test" + keyString + "()", Strictness.Lenient));
+        return (FuncMethodMock<TIn, TOut>)_test.GetOrAdd(key, keyString => new FuncMethodMock<TIn, TOut>(this, "TypeParameters", "ITypeParameters", "Test" + keyString, "Test" + keyString, Strictness.Lenient));
     }
 
     TOut ITypeParameters.Test<TIn, TOut>(TIn input) => Test<TIn, TOut>().Call(input);
@@ -207,20 +207,20 @@ when adding steps; where your 'normal' tests used to look like this:
 
 .. sourcecode:: csharp
 
-    var t = new TypeParameters;
+    var t = new TypeParameters();
     t.Test.Return(15); // mock property
 
 You'll now write:
 
 .. sourcecode:: csharp
 
-    var t = new TypeParameters;
+    var t = new TypeParameters();
     t.Test<string, int>().Func(int.Parse); // mock factory method
     t.Test<int, int>().Func(a => a*2);     // mock factory method
 
 Your mocks are made 'per type combination', and if you're trying to use the mock with an un-mocked set of type parameters the result depends on the strictness
 level of your mock. There is no
-easy way to define a mock 'for all possible combinations of types', so Mocklis doesn't support this. Note however that Mocklis passed on the type constraints
+easy way to define a mock 'for all possible combinations of types', so Mocklis doesn't support this. Note however that Mocklis passes on the type constraints
 to your factory method so you won't be able to add steps to an invalid type combination.
 
 Debugging tests
@@ -240,7 +240,7 @@ clear `Step over properties and operators`.
 .. image:: debugging-options.png
 
 Now you can set breakpoints in your tests and use `step into` (F11) to drill into the Mocklis source code once you're in debug mode. You can set breakpoints in any source file
-opened in this fashion. If you need to set a breakpoint in a file you don't have opened but you know the name of the member, you can add this with the
+opened in this fashion. If you need to set a breakpoint in a file you don't have open but you know the name of the member, you can add this with the
 `New` dropdown in the Breakpoints window, or `New Breakpoint` from the Debug menu.
 
 Refactoring tests
@@ -248,7 +248,7 @@ Refactoring tests
 
 As the number of tests in your solution grows, it becomes increasingly important to make the test code itself streamlined and easy
 to work with. The classes you write with Mocklis are just normal code so most of the techniques you use for your normal development
-work equally well. In some cases you use patterns in your code base that would benefit from having steps tailored for them, we'll go
+work equally well. In some cases you use patterns in your code base that would benefit from having steps tailored for them; we'll go
 over how to do this in the section on :doc:`../extensions/index`. Find a few other techniques listed below.
 
 Sharing setup logic
@@ -269,10 +269,11 @@ Mocklis will create constructors as necessary, all of which will be protected if
 
 You can also have `Mocklis classes` inherit from other `Mocklis classes` which lets you mock new interfaces for an existing `Mocklis class`.
 This could be useful if some of your tests require the mocked out dependency to also be disposable for instance...
-If you do use the ``MocklisClass`` attribute at more than one level of the class hierarchy you need to generate the code in the
-right order, from base class to derived class, otherwise you could get unresolved name clashes.
+If you do use the ``MocklisClass`` attribute at more than one level of the class hierarchy, and both classes are in the same project, be aware that the source generator only sees
+the members you have written yourself in the base class, not the `mock properties` generated for it. If the base class and the derived class
+mock members with the same name you can therefore end up with a `mock property` in the derived class hiding one in the base class.
 
-Invoking Mocks directly
+Invoking mocks directly
 -----------------------
 
 Strictly speaking not something that helps you refactor tests, but still a technique that is useful to know when writing code that
@@ -316,14 +317,14 @@ for more than one interface, and have the mock handle identical members on diffe
 different ways.
 
 So if you want to mock members of an abstract base class you can't - unless you're happy to manually
-write code to create `mock properties` and call them from your overridden memebers, and either do away
+write code to create `mock properties` and call them from your overridden members, and either do away
 with the ability to call 'base' or pass on the base call as another property as a lambda.
 
-Then there are the so-called restricted types, comprised of a handful of core .net classes
+Then there are the so-called restricted types, comprised of a handful of core .NET classes
 and ref structs. (The handful of classes are ``System.RuntimeArgumentHandle``, ``System.ArgIterator``,
 and ``System.TypedReference``, and your ref structs are things like ``Span<T>``.) These cannot be cast
 to object, and cannot be used as type parameters. As Mocklis uses type parameters to fit interface
-members into one of the four standard forms, these types can not be used by normal Mocklis mocks.
+members into one of the four standard forms, these types cannot be used by normal Mocklis mocks.
 
 Mocklis will still implement these interface members explicitly, but instead of forwarding calls
 on to a `mock property` (or `mock factory method`) it will create `virtual methods` whose
@@ -332,7 +333,7 @@ have to subclass, and override. This is exactly the same trick as is used by def
 `ref returns` cases mentioned earlier.
 
 Having said all of this, Mocklis should be able to provide something that compiles from any interface or
-(valid combination of) interfaces. In most cases this should should result in `mock properties` that you can use
+(valid combination of) interfaces. In most cases this should result in `mock properties` that you can use
 steps with. It should also avoid any name clashes, be it clashes with the name of the `Mocklis class` itself,
 any members defined in base classes, or clashes in type parameter names. If you do come up with a way of tripping
 up the code generator, please flag this on GitHub so it can be dealt with.

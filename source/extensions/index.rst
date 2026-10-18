@@ -17,9 +17,9 @@ Phase 1: Write a step
 
 If you are writing a 'final' step, implement the I-memberType-Step interface. You just need to implement this interface and you're done.
 
-If you are writing a non-final step, consider (as in: it is very strongly recommended) subclassing the memberType-StepWithNext class, and override
-the I-memberType-Step members as you see fit. Otherwise you need to implement strictness checks yourself, and the base class will give you
-overridable members to plug in your specific functionality where the base implementation will forward to a next step.
+If you are writing a non-final step, consider (as in: it is very strongly recommended) subclassing the memberType-StepWithNext class, and overriding
+the I-memberType-Step members as you see fit. The base class gives you overridable members to plug in your specific functionality, where
+the base implementation will forward to a next step. Otherwise you need to implement strictness checks yourself.
 Let's say we're writing a step to nudge our overworked developers to go home by starting to throw exceptions after 5 o'clock.
 
 Let's also say we're writing this for a property. We'll end up with something like this:
@@ -59,7 +59,7 @@ Let's also say we're writing this for a property. We'll end up with something li
 Phase 2: Write an extension method
 ----------------------------------
 
-If you wanted to use the new step as is, you would have to create an instance of it and feed to the ``SetNextStep`` method of the previous
+If you wanted to use the new step as is, you would have to create an instance of it and feed it to the ``SetNextStep`` method of the previous
 step. To enable the fluent syntax you'll need to add the step as an extension method on the ``IPropertyStepCaller`` interface.
 
 .. sourcecode:: csharp
@@ -101,11 +101,11 @@ the step to the different member types if possible.
 
 In some cases the way a step works could depend on the complete state of the mock instance. In these cases you should add new
 steps with the same name as your existing ones, but prefixed with 'Instance'. For this version you pass on the ``IMockInfo.Instance``
-to the construct you have that uses the instance. Look at the existing ``Lamdba`` steps for the quintessential implementation, however
+to the construct you have that uses the instance. Look at the existing ``Lambda`` steps for the quintessential implementation, however
 the ``Record`` and ``If`` steps also have instance versions.
 
 If you work with steps for methods, you might need to consider having different versions depending on whether your
-methods take parameters or not, and whether they return things or not. For the ``lamdba`` steps there are two ``FuncMethodStep`` classes,
+methods take parameters or not, and whether they return things or not. For the ``Lambda`` steps there are two ``FuncMethodStep`` classes,
 and two ``ActionMethodStep`` classes.
 
 .. sourcecode:: csharp
@@ -126,7 +126,7 @@ and two ``ActionMethodStep`` classes.
     {
     }
 
-Note how the ones that don't funnel data constrict either TParam and/or TResult to be of type ValueTuple (read: *void* or *unit* depending on how you were brought up).
+Note how the ones that don't funnel data constrain TParam and/or TResult to be of type ValueTuple (read: *void* or *unit* depending on how you were brought up).
 While more than one of these might be eligible for use in a given scenario, the design goal is that there should always be one that doesn't require the user
 to pass manually created ValueTuple instances.
 
@@ -182,10 +182,10 @@ A verification implements the IVerifiable interface:
 
 The first constructor is for leaf nodes, and the second is for branch nodes. Note that if any leaf node fails,
 all branch nodes up to the root from that leaf node will have failed as well. Therefore if the root succeeds,
-we can be sure that all leaf nodes will have as well.
+we can be sure that all leaf nodes will have succeeded as well.
 
-Verifications can either be written as steps. These steps implement the ``IVerifiable`` interface, and the
-extension method takes a VerficationGroup as a parameter and attach the created step to that group.
+Verifications can either be written as steps or as checks. Steps implement the ``IVerifiable`` interface, and the
+extension method takes a ``VerificationGroup`` as a parameter and attaches the created step to that group.
 
 Let's say we're creating a Method step to check that the method has indeed been called. Subclass ``MethodStepWithNext``,
 override ``Call`` to set a flag that it has been called, and implement ``IVerifiable`` to return a ``VerificationResult``.
@@ -228,13 +228,13 @@ verify that the condition for the verification has been met. In the case of the 
 that checks that a ``Stored`` property step has the right value this includes:
 
 * The ``IStoredProperty`` to check the value of.
-* A string that allows us to give the verification a name to identify it by. This is genarally a recommended thing to do.
+* A string that allows us to give the verification a name to identify it by. This is generally a recommended thing to do.
 * The expected value.
 * An equality comparer to check that the value is right, where the default null will be replaced with ``EqualityComparer.Default``.
 
 Then the ``Verify`` method checks the condition and returns one or more verification results.
 
-The extension method is slighly different from the one used for steps. For one thing there is no chaining
+The extension method is slightly different from the one used for steps. For one thing there is no chaining
 going on through a ``SetNextStep`` method. Just use the interface exposed as a 'this' parameter, add a ``VerificationGroup``, use the
 former to create the check instance and the latter to make the check available from the group. Then it can just return
 the access interface again if we want to attach more checks.
@@ -257,7 +257,7 @@ Something like this:
 Writing a new logging context
 =============================
 
-This has got to be a very rare occurrance. Given that the ``Log`` steps are mainly there to aid in debugging your mocks, the default
+This has got to be a very rare occurrence. Given that the ``Log`` steps are mainly there to aid in debugging your mocks, the default
 behaviour to just write log statements to the console is normally good enough.
 
 If you need to write them to somewhere else, such as to an xUnit ``ITestOutputHelper``,
@@ -266,4 +266,4 @@ you can pass an ``Action<string>`` to the ``WriteLineLogContext`` constructor an
 However if you need to do more advanced stuff, such as logging mock interactions as structured data you can create a bespoke
 implementation of the ``ILogContext`` interface. This interface has individual methods for all different logging calls made by Mocklis.
 Implementing it should be a straightforward, if boring, exercise, and you can always look at the source code for the
-`Mocklis.Serilog2` for an example of how it can be done.
+``Mocklis.Serilog4`` package for an example of how it can be done.

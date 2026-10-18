@@ -3,11 +3,11 @@ Introduction
 ============
 
 
-Mocklis is a mocking library for .net (currently C#) that
+Mocklis is a mocking library for .NET (currently C#) that
 
 * creates fake implementations of interfaces
 * that can be given specific behaviour
-* in an intellisense-friendly way
+* in an IntelliSense-friendly way
 * to be used as dependencies in components we want to test
 * letting us verify that they are correctly interacted with
 * without any use of reflection.
@@ -36,31 +36,31 @@ Then you create an empty partial class implementing this interface, and decorate
     [MocklisClass]
     public partial class MockConnection : IConnection;
 
-The ``MocklisClass`` attribute is a signal to the Mocklis Source Generator to implement this interface for you behind the scene. You may see a red squiggly line in your editor
-for a little bit while the code is being generated, but it should go away almost right away. Looking at the declaration for the ConnectionMock class you can navigate to the
+The ``MocklisClass`` attribute is a signal to the Mocklis Source Generator to implement this interface for you behind the scenes. You may see a red squiggly line in your editor
+for a little bit while the code is being generated, but it should go away almost immediately. Looking at the declaration for the MockConnection class you can navigate to the
 generated code which looks a bit like this:
 
 .. sourcecode:: csharp
 
-    partial class MockConnection : IConnection
+    partial class MockConnection
     {
         public global::Mocklis.Core.PropertyMock<string> ConnectionId { get; }
 
         string global::IConnection.ConnectionId => ConnectionId.Value;
 
-        public global::Mocklis.Core.EventMock<global::System.EventHandler<global::MocklisTest.MessageEventArgs>> Receive { get; }
+        public global::Mocklis.Core.EventMock<global::System.EventHandler<global::MessageEventArgs>> Receive { get; }
 
         event global::System.EventHandler<global::MessageEventArgs> global::IConnection.Receive { add => Receive.Add(value); remove => Receive.Remove(value); }
 
         public global::Mocklis.Core.FuncMethodMock<global::Message, global::System.Threading.Tasks.Task> Send { get; }
 
-        global::System.Threading.Tasks.Task global::IConnection.Send(global::.Message message) => Send.Call(message);
+        global::System.Threading.Tasks.Task global::IConnection.Send(global::Message message) => Send.Call(message);
 
-        public ConnectionMock() : base()
+        public MockConnection() : base()
         {
-            this.ConnectionId = new global::Mocklis.Core.PropertyMock<string>(this, "ConnectionMock", "IConnection", "ConnectionId", "ConnectionId", global::Mocklis.Core.Strictness.Lenient);
-            this.Receive = new global::Mocklis.Core.EventMock<global::System.EventHandler<global::MocklisTest.MessageEventArgs>>(this, "ConnectionMock", "IConnection", "Receive", "Receive", global::Mocklis.Core.Strictness.Lenient);
-            this.Send = new global::Mocklis.Core.FuncMethodMock<global::Message, global::System.Threading.Tasks.Task>(this, "ConnectionMock", "IConnection", "Send", "Send", global::Mocklis.Core.Strictness.Lenient);
+            this.ConnectionId = new global::Mocklis.Core.PropertyMock<string>(this, "MockConnection", "IConnection", "ConnectionId", "ConnectionId", global::Mocklis.Core.Strictness.Lenient);
+            this.Receive = new global::Mocklis.Core.EventMock<global::System.EventHandler<global::MessageEventArgs>>(this, "MockConnection", "IConnection", "Receive", "Receive", global::Mocklis.Core.Strictness.Lenient);
+            this.Send = new global::Mocklis.Core.FuncMethodMock<global::Message, global::System.Threading.Tasks.Task>(this, "MockConnection", "IConnection", "Send", "Send", global::Mocklis.Core.Strictness.Lenient);
         }
     }
 
@@ -128,20 +128,20 @@ an event on them for testing purposes. (Exercise for the reader: write some code
 This is of course just an introduction; see the :doc:`../reference/index` for a complete list of steps and other constructs used to control
 how `Mocklis Classes` work.
 
-Intellisense friendly
+IntelliSense friendly
 =====================
 
-Intellisense is a great feature of modern code editors, and Mocklis is written to make the most of it. Your `Mocklis class` exposes `mock properties`
+IntelliSense is a great feature of modern code editors, and Mocklis is written to make the most of it. Your `Mocklis class` exposes `mock properties`
 for members of implemented interfaces. These `mock properties` have extension methods for all of the different steps that they support, which allows
-Visual Studio will list the available steps through intellisense.
+Visual Studio to list the available steps through IntelliSense.
 
 .. image:: Intellisense.png
 
 Thanks to the extension method approach this list would also include any bespoke steps that have been added, whether defined in your own
-solution or in third party packages.
+solution or in third-party packages.
 
 When mocking out method calls, all arguments are combined into a named value tuple (unless there's exactly one in which case that one is used),
-which means that we get intellisense for using those parameters as well.
+which means that we get IntelliSense for using those parameters as well.
 
 .. image:: intellisense2.png
 
@@ -149,25 +149,25 @@ Used as dependencies
 ====================
 
 Since `Mocklis classes` implement interfaces explicitly, we don't risk a name clash with the `mock properties` (and indeed if possible, the `mock properties`
-will be given the same name as the interface member it's paired with), and we can use the `Mocklis class` instance directly wherever the
+will be given the same name as the interface member they're paired with), and we can use the `Mocklis class` instance directly wherever the
 interface is expected.
 
-`Mocklis classes` can also implement more than one interface in cases where the component it acts as a stand-in for would implement more than
-one interface. Common cases include where a class would implement a service interface and ``IDispose``, or an interface with property accessors
+`Mocklis classes` can also implement more than one interface in cases where the component they act as a stand-in for would implement more than
+one interface. Common cases include where a class would implement a service interface and ``IDisposable``, or an interface with property accessors
 and ``INotifyPropertyChanged``. If you need to mock out an enumerable, your `Mocklis class` can mock both ``IEnumerable<T>`` and ``IEnumerator<T>``
 at the same time.
 
-However, this also means that `Mocklis classes` can not create mocks for virtual members of an (abstract) base class, as these can not be explicitly implemented.
+However, this also means that `Mocklis classes` cannot create mocks for virtual members of an (abstract) base class, as these cannot be explicitly implemented.
 
 Verify interactions
 ===================
 
-There are a number of ways in which you can verify that the 'component under test' makes the right calls to your mocked dependency. There are a number of ways to do this using steps:
-simple cases:
+There are a number of ways in which you can verify that the 'component under test' makes the right calls to your mocked dependency. In simple cases
+you can do this using steps:
 
 * If you have a method you don't expect to be called, you can use a ``Throw`` step to throw an exception which will hopefully bubble up through your code and fail the test.
 * If you have a property, event or indexer you can use a ``Stored`` step and manually check that the right value was stored.
-* If you have a method then you can use a ``Func`` or ``Action`` step and let that set a flag which you can later manully assert.
+* If you have a method then you can use a ``Func`` or ``Action`` step and let that set a flag which you can later manually assert.
 * You can use a ``Record`` step to record all interactions and check that the right interactions happened.
 
 Mocklis also has a set of verification classes and interfaces that can be used to add checks to your `mock properties` and to verify
@@ -226,7 +226,7 @@ to pass true for the ``includeSuccessfulVerifications`` parameter, as was done i
 it you would only see the lines that failed.
 
 The `null` values in the example are placeholders for strings that would be added to the relevant lines in
-the result to help finding the culprit if the assertion failed.
+the result to help find the culprit if the assertion failed.
 
 Without reflection
 ==================

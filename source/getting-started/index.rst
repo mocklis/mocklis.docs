@@ -7,7 +7,7 @@ A first mock
 
 Mocking is the art of creating fake but controllable replacements for dependencies to code that we wish
 to test. However, for a simple walk-through of the functionality we'll write a normal console application
-instead hoping that not too much is lost in the transition.
+instead, hoping that not too much is lost in the transition.
 
 Let's say we're writing a component that reads numbers from standard input, sends them off to a web
 service for some calculation and writes the result to standard output.
@@ -51,12 +51,12 @@ with fields for the dependencies we'll use.
 
 We will at some point write proper implementations of these interfaces, but for now we want to just mock them out.
 
-Add two new classes, ``MockConsole`` and ``MockService``. Let them implement their corresponding interface but otherwise
+Add two new partial classes, ``MockConsole`` and ``MockService``. Let them implement their corresponding interface but otherwise
 remain empty. Reference the ``Mocklis`` NuGet package from your project and add the ``MocklisClass`` attribute to both classes.
 
 For this walkthrough we need to add the 'Strict' parameter to the attributes - this is purely because we want to get exceptions
 for missing configurations to guide us to write more mocks. In your real life cases you may wish to have all mocks return
-default values instead of throwing exceptions in which case leave out the `Strict` parameter.
+default values instead of throwing exceptions, in which case leave out the `Strict` parameter.
 
 .. sourcecode:: csharp
 
@@ -66,10 +66,9 @@ default values instead of throwing exceptions in which case leave out the `Stric
     [MocklisClass(Strict = true)]
     public partial class MockService : IService;
 
-Now you can use the `Update Mocklis Class` code fix to create implementations for these interfaces. If you look at the MocklisClass
-attribute you'll see that the first characters have an underline. This is Visual Studio hinting that there is a code fix available.
-Move your mouse over that area, and Visual Studio will provide you with a light-bulb. Click on the dropdown arrow and you'll see a list of
-suggestions. Pick 'Update Mocklis Class' from the list, which will create an implementation of the class. Do this for both classes.
+There is nothing more you need to do. The Mocklis source generator picks up the ``MocklisClass`` attribute and creates the implementations
+of these interfaces behind the scenes, and keeps them up to date if the interfaces change. If you want to see what was generated, right-click
+on a class name and select ``Go To Implementation``, as described in the :doc:`../introduction/index`.
 
 Instantiate these mocks in the static ``Main``. Pass the instances to the constructor, create a non-static ``Run`` method and call it once the program
 instance has been created:
@@ -188,7 +187,7 @@ remember everything that was passed through it, and make it available using its 
 ``Record`` steps, like ``Log`` steps, kind of expect you to chain further steps. They don't make any decisions on their own. In this case we didn't provide a further step
 so a default behaviour kicks in which is to accept any input and provide default values for any output required. This is normally the default behaviour as
 well for mocks that don't have any steps defined at all, but we overrode that behaviour with the `Strict = true` switch in the ``MocklisClass`` attribute. If
-we want to throw for an incomplete mock as well (such as only providing a ``Log`` or ``Record`` without a subsequent step) you can set the `VeryStrict = true`
+you want to throw for an incomplete mock as well (such as only providing a ``Log`` or ``Record`` without a subsequent step) you can set the `VeryStrict = true`
 attribute switch. If you'd done so, you would have needed to add a ``Dummy`` step after the ``RecordBeforeCall`` step.
 
 Let's also write out the first recorded value (in fact the only recorded value) to the real console so we can see the full thing end-to-end.
